@@ -49,6 +49,27 @@ def handle_message(event, say):
     
     if channel_id == MAILBOX_CHANNEL and bot_id:
         print(f"📧 Potential email in Mailbox channel - bot_id: {bot_id}")
+        
+        # Check if email came as file attachment
+        files = event.get("files", [])
+        if files and subtype == "file_share":
+            print(f"📎 Email came as file attachment, extracting content...")
+            # Try to get email content from file
+            for file in files:
+                if file.get("mimetype") == "text/plain" or "email" in file.get("name", "").lower():
+                    # Try to get file content - may need to download
+                    file_content = file.get("preview", "") or file.get("plain_text", "")
+                    if file_content:
+                        text = file_content
+                        print(f"✅ Extracted {len(text)} chars from file")
+                    break
+        
+        if not text:
+            print(f"⚠️ No email text found (text empty, no files with content)")
+            return
+        
+        print(f"📧 Email text preview: {text[:200]}...")
+        
         # This is likely an email message posted by alien-mail bot
         try:
             from app.utils.email_parser import (
@@ -113,8 +134,10 @@ def handle_message(event, say):
                 else:
                     print(f"   ⚠️  No project match found - email not stored")
                     # TODO: Post to internal channel for manual tagging
+            else:
+                print(f"   ❌ Email parsing failed - no from_email extracted")
                 
-                return  # Email handled, don't process as regular message
+            return  # Email handled, don't process as regular message
                 
         except Exception as e:
             print(f"❌ Email parsing error: {e}")
