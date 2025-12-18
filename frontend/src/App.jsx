@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Radio, ClipboardList, Settings, Archive, ChevronLeft, ChevronRight, LogOut, User, FileText, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Radio, ClipboardList, Settings, Archive, ChevronLeft, ChevronRight, LogOut, User, FileText, Sun, Moon, Bot } from 'lucide-react';
 
 import Scanner from './pages/Scanner';
 import Projects from './pages/Projects';
@@ -11,6 +11,7 @@ import Archives from './pages/Archives';
 import Login from './pages/Login';
 import SettingsPage from './pages/Settings';
 import Reports from './pages/Reports';
+import AlienGPT from './pages/AlienGPT';
 import AiChat from './components/ui/AiChat';
 
 import { ToastProvider } from './context/ToastContext';
@@ -103,6 +104,7 @@ function AppLayout({ children }) {
           <NavLink to="/scanner" icon={Radio} label="Scanner" isCollapsed={isCollapsed} />
           {canAccessSettings() && (
             <NavLink to="/reports" icon={FileText} label="Reports" isCollapsed={isCollapsed} />
+            <NavLink to="/alien-gpt" icon={Bot} label="AlienGPT" isCollapsed={isCollapsed} />
           )}
           <div className="pt-4 mt-4 border-t border-gray-100">
             <NavLink to="/archives" icon={Archive} label="Archives" isCollapsed={isCollapsed} />
@@ -191,6 +193,7 @@ function AppRoutes() {
       <Route path="/scanner" element={<ProtectedRoute><AppLayout><Scanner /></AppLayout></ProtectedRoute>} />
       <Route path="/archives" element={<ProtectedRoute><AppLayout><Archives /></AppLayout></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><AppLayout><Reports /></AppLayout></ProtectedRoute>} />
+      <Route path="/alien-gpt" element={<ProtectedRoute><AppLayout><AlienGPT /></AppLayout></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute requiredRole="superadmin"><AppLayout><SettingsPage /></AppLayout></ProtectedRoute>} />
 
       {/* Catch all - redirect to projects */}

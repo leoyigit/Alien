@@ -77,24 +77,24 @@ def generate_report():
     if project_ids:
         projects = [p for p in all_projects if p['id'] in project_ids]
     else:
-        # Default to all projects for PM status report to get counts right, 
-        # but AI will focus on non-launched ones for details if requested.
-        projects = all_projects
+        # Default to active projects only (exclude Launched) to match PM Station
+        # This ensures reports focus on projects that need attention
+        projects = [p for p in all_projects if p.get('category') != 'Launched']
     
     if not projects:
-        return jsonify({"error": "No projects found"}), 404
+        return jsonify({"error": "No active projects found"}), 404
     
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Build context based on report type
     if report_type == 'pm_status':
-        # Calculate counts
-        counts = {
-            "New / In Progress": sum(1 for p in projects if p.get('category') == 'New / In Progress'),
-            "Almost Ready": sum(1 for p in projects if p.get('category') == 'Almost Ready'),
-            "Ready": sum(1 for p in projects if p.get('category') == 'Ready'),
-            "Stuck / On Hold": sum(1 for p in projects if p.get('category') == 'Stuck / On Hold'),
-            "Launched": sum(1 for p in projects if p.get('category') == 'Launched')
+        # Calculate counts for ALL projects (including Launched for context)
+        all_counts = {
+            "New / In Progress": sum(1 for p in all_projects if p.get('category') == 'New / In Progress'),
+            "Almost Ready": sum(1 for p in all_projects if p.get('category') == 'Almost Ready'),
+            "Ready": sum(1 for p in all_projects if p.get('category') == 'Ready'),
+            "Stuck / On Hold": sum(1 for p in all_projects if p.get('category') == 'Stuck / On Hold'),
+            "Launched": sum(1 for p in all_projects if p.get('category') == 'Launched')
         }
         
         context = build_detailed_pm_context(projects)
@@ -102,10 +102,13 @@ def generate_report():
 The report must follow this EXACT structure:
 
 # PM Status Report
-## {counts['New / In Progress']} New, {counts['Almost Ready']} Almost Ready, {counts['Ready']} Ready, {counts['Stuck / On Hold']} Stuck, {counts['Launched']} Launched
+## {all_counts['New / In Progress']} New, {all_counts['Almost Ready']} Almost Ready, {all_counts['Ready']} Ready, {all_counts['Stuck / On Hold']} Stuck, {all_counts['Launched']} Launched
 Report created at: {current_time}
 
-Group projects by their status (New / In Progress, Almost Ready, Ready, Stuck / On Hold, Launched).
+NOTE: This report focuses on ACTIVE projects only (excludes Launched projects from details).
+The counts above show the full portfolio including {all_counts['Launched']} launched projects.
+
+Group projects by their status (New / In Progress, Almost Ready, Ready, Stuck / On Hold).
 For each project, include ALL available details in a readable format:
 - Project Name (as a header)
 - PM Notes (status_detail)

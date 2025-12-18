@@ -4,6 +4,7 @@ from app.api.routes import api
 from app.api.auth import auth
 from app.api.settings_api import settings_api
 from app.api.reports import reports_api
+from app.api.chat import chat_api
 from app.api.webhooks import webhooks
 from flask_cors import CORS
 
@@ -16,6 +17,7 @@ def create_app():
     app.register_blueprint(auth, url_prefix='/api/auth')
     app.register_blueprint(settings_api, url_prefix='/api/settings')
     app.register_blueprint(reports_api, url_prefix='/api/reports')
+    app.register_blueprint(chat_api, url_prefix='/api/chat')
     app.register_blueprint(webhooks)  # No prefix - already includes /slack/events
 
     return app
