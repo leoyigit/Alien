@@ -22,6 +22,7 @@ export default function ProjectDetails() {
     const [visibilityTab, setVisibilityTab] = useState('internal');
     const [loading, setLoading] = useState(true);
     const [logsLoading, setLogsLoading] = useState(false);
+    const [messageCounts, setMessageCounts] = useState({ internal: 0, external: 0, emails: 0 });
 
     const { showToast } = useToast();
     const { canEditProject, canViewInternalChannel } = useAuth();
@@ -91,6 +92,31 @@ export default function ProjectDetails() {
         fetchTeam();
 
     }, [id, projects, globalLoading]);
+
+    // Fetch message counts when Communication tab loads
+    useEffect(() => {
+        if (!id || activeTab !== 'chat') return;
+
+        const fetchCounts = async () => {
+            try {
+                const [internalRes, externalRes, emailsRes] = await Promise.all([
+                    api.get(`/projects/${id}/logs`, { params: { visibility: 'internal' } }),
+                    api.get(`/projects/${id}/logs`, { params: { visibility: 'external' } }),
+                    api.get(`/projects/${id}/emails`)
+                ]);
+
+                setMessageCounts({
+                    internal: internalRes.data?.length || 0,
+                    external: externalRes.data?.length || 0,
+                    emails: emailsRes.data?.length || 0
+                });
+            } catch (e) {
+                console.error('Failed to load counts:', e);
+            }
+        };
+
+        fetchCounts();
+    }, [id, activeTab]);
 
     // Fetch messages when visibility tab changes
     useEffect(() => {
@@ -625,7 +651,7 @@ export default function ProjectDetails() {
                                         className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${visibilityTab === 'internal' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                     >
                                         <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                        Internal
+                                        Internal {messageCounts.internal > 0 && `(${messageCounts.internal})`}
                                     </button>
                                 )}
                                 <button
@@ -633,7 +659,7 @@ export default function ProjectDetails() {
                                     className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${visibilityTab === 'external' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                    External
+                                    External {messageCounts.external > 0 && `(${messageCounts.external})`}
                                 </button>
                                 <button
                                     onClick={() => setVisibilityTab('emails')}
