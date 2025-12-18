@@ -665,8 +665,8 @@ export default function ProjectDetails() {
                                     onClick={() => setVisibilityTab('emails')}
                                     className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${visibilityTab === 'emails' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
-                                    <Mail size={14} />
-                                    Emails
+                                    <Mail size={16} />
+                                    Emails {messageCounts.emails > 0 && `(${messageCounts.emails})`}
                                 </button>
                             </div>
                         </div>
