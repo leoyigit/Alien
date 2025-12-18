@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { Send, Loader, Trash2, Bot, User as UserIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function AlienGPT() {
     const { user } = useAuth();
@@ -124,8 +125,8 @@ What would you like to know?`,
                         >
                             {/* Avatar */}
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === 'user'
-                                    ? 'bg-blue-100 text-blue-600'
-                                    : 'bg-purple-100 text-purple-600'
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'bg-purple-100 text-purple-600'
                                 }`}>
                                 {message.role === 'user' ? <UserIcon size={16} /> : <Bot size={16} />}
                             </div>
@@ -133,12 +134,30 @@ What would you like to know?`,
                             {/* Message */}
                             <div className={`flex-1 max-w-3xl ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
                                 <div className={`inline-block p-4 rounded-2xl ${message.role === 'user'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-900'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-900'
                                     }`}>
                                     {message.role === 'assistant' ? (
-                                        <div className="prose prose-sm max-w-none">
-                                            <ReactMarkdown>{message.content}</ReactMarkdown>
+                                        <div className="prose prose-sm max-w-none prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:bg-gray-100 prose-th:p-2 prose-td:border prose-td:border-gray-300 prose-td:p-2">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    table: ({ node, ...props }) => (
+                                                        <table className="w-full border-collapse border border-gray-300 my-2" {...props} />
+                                                    ),
+                                                    thead: ({ node, ...props }) => (
+                                                        <thead className="bg-gray-100" {...props} />
+                                                    ),
+                                                    th: ({ node, ...props }) => (
+                                                        <th className="border border-gray-300 px-3 py-2 text-left font-bold" {...props} />
+                                                    ),
+                                                    td: ({ node, ...props }) => (
+                                                        <td className="border border-gray-300 px-3 py-2" {...props} />
+                                                    ),
+                                                }}
+                                            >
+                                                {message.content}
+                                            </ReactMarkdown>
                                         </div>
                                     ) : (
                                         <p className="whitespace-pre-wrap">{message.content}</p>
