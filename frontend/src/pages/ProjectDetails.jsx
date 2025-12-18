@@ -23,6 +23,7 @@ export default function ProjectDetails() {
     const [loading, setLoading] = useState(true);
     const [logsLoading, setLogsLoading] = useState(false);
     const [messageCounts, setMessageCounts] = useState({ internal: 0, external: 0, emails: 0 });
+    const [countsLoading, setCountsLoading] = useState(false);
 
     const { showToast } = useToast();
     const { canEditProject, canViewInternalChannel } = useAuth();
@@ -399,7 +400,9 @@ export default function ProjectDetails() {
             <div className="flex border-b border-gray-200 mb-6 bg-white px-4 rounded-t-xl overflow-x-auto">
                 <button onClick={() => setActiveTab('report')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'report' ? 'border-black' : 'border-transparent text-gray-400'}`}>Status & Checklist</button>
                 <button onClick={() => setActiveTab('info')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'info' ? 'border-black' : 'border-transparent text-gray-400'}`}>Metadata & Stakeholders</button>
-                <button onClick={() => setActiveTab('chat')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'chat' ? 'border-black' : 'border-transparent text-gray-400'}`}>Communication ({logs.length})</button>
+                <button onClick={() => setActiveTab('chat')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'chat' ? 'border-black' : 'border-transparent text-gray-400'}`}>
+                    Communication ({countsLoading ? '...' : messageCounts.internal + messageCounts.external + messageCounts.emails})
+                </button>
             </div>
 
             {activeTab === 'report' && (
