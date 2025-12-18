@@ -5,7 +5,7 @@ import { useProjects } from '../context/ProjectsContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import TerminalLoader from '../components/ui/TerminalLoader.jsx';
 import AnimatedCounter from '../components/ui/AnimatedCounter.jsx';
-import { MessageSquare, Hash, Clock, RefreshCw, ClipboardList, ArrowRight, ExternalLink, Loader, Activity, User, ChevronDown } from 'lucide-react';
+import { MessageSquare, Hash, Clock, RefreshCw, ClipboardList, ArrowRight, ExternalLink, Loader, Activity, User, ChevronDown, Search, X, Filter } from 'lucide-react';
 import { CHECKLIST_GROUPS, ALL_CHECKLIST_ITEMS, BLOCKER_OPTS, parseBlocker } from '../utils/constants';
 
 export default function Projects() {
@@ -16,21 +16,67 @@ export default function Projects() {
   const [refreshing, setRefreshing] = useState(false);
   const [statusDropdown, setStatusDropdown] = useState(null); // Track which project's dropdown is open
 
+  // Filter & Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [pmFilter, setPmFilter] = useState('all');
+  const [devFilter, setDevFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('lastUpdated');
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchProjects(true);
     setRefreshing(false);
   };
 
-  const filteredProjects = activeFilter === 'All'
+  // Get unique PMs and Devs for filter dropdowns
+  const uniquePMs = ['all', ...new Set(projects.map(p => p.owner).filter(Boolean))];
+  const uniqueDevs = ['all', ...new Set(projects.map(p => p.developer).filter(Boolean))];
+
+  // Apply all filters
+  let filteredProjects = activeFilter === 'All'
     ? projects
     : projects.filter(p => p.category === activeFilter);
 
+  // Apply search
+  if (searchTerm) {
+    filteredProjects = filteredProjects.filter(p =>
+      p.client_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  // Apply PM filter
+  if (pmFilter !== 'all') {
+    filteredProjects = filteredProjects.filter(p => p.owner === pmFilter);
+  }
+
+  // Apply Dev filter
+  if (devFilter !== 'all') {
+    filteredProjects = filteredProjects.filter(p => p.developer === devFilter);
+  }
+
+  // Apply sort
   const sortedProjects = [...filteredProjects].sort((a, b) => {
-    const dateA = a.stats?.last_active ? new Date(a.stats.last_active) : new Date(0);
-    const dateB = b.stats?.last_active ? new Date(b.stats.last_active) : new Date(0);
-    return dateB - dateA;
+    if (sortBy === 'lastUpdated') {
+      const dateA = a.stats?.last_active ? new Date(a.stats.last_active) : new Date(0);
+      const dateB = b.stats?.last_active ? new Date(b.stats.last_active) : new Date(0);
+      return dateB - dateA;
+    } else if (sortBy === 'name') {
+      return a.client_name.localeCompare(b.client_name);
+    } else if (sortBy === 'status') {
+      const order = { 'Launched': 1, 'Ready': 2, 'Almost Ready': 3, 'New / In Progress': 4, 'Stuck / On Hold': 5 };
+      return (order[a.category] || 99) - (order[b.category] || 99);
+    }
+    return 0;
   });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setPmFilter('all');
+    setDevFilter('all');
+    setSortBy('lastUpdated');
+  };
+
+  const activeFiltersCount = (searchTerm ? 1 : 0) + (pmFilter !== 'all' ? 1 : 0) + (devFilter !== 'all' ? 1 : 0);
 
   const getFilterCount = (filter) => {
     if (filter === 'All') return projects.length;
@@ -114,6 +160,68 @@ export default function Projects() {
           <button onClick={handleRefresh} disabled={refreshing} className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50">
             <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           </button>
+        </div>
+      </div>
+
+      {/* FILTER & SEARCH BAR */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-black outline-none"
+            />
+          </div>
+
+          {/* PM Filter */}
+          <select
+            value={pmFilter}
+            onChange={(e) => setPmFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+          >
+            <option value="all">All PMs</option>
+            {uniquePMs.filter(pm => pm !== 'all').map(pm => (
+              <option key={pm} value={pm}>{pm}</option>
+            ))}
+          </select>
+
+          {/* Dev Filter */}
+          <select
+            value={devFilter}
+            onChange={(e) => setDevFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+          >
+            <option value="all">All Devs</option>
+            {uniqueDevs.filter(dev => dev !== 'all').map(dev => (
+              <option key={dev} value={dev}>{dev}</option>
+            ))}
+          </select>
+
+          {/* Sort */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+          >
+            <option value="lastUpdated">Last Updated</option>
+            <option value="name">Name (A-Z)</option>
+            <option value="status">Status</option>
+          </select>
+
+          {/* Clear Filters */}
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold text-sm flex items-center gap-2 transition whitespace-nowrap"
+            >
+              <X size={14} /> Clear ({activeFiltersCount})
+            </button>
+          )}
         </div>
       </div>
 
@@ -224,7 +332,7 @@ export default function Projects() {
                   </div>
                 </div>
                 <div>
-                  <Link to={`/projects/${p.id}`} className="block w-full text-left p-3 bg-white/80 hover:bg-white border border-black/5 hover:border-blue-300 rounded-lg transition group shadow-sm">
+                  <Link to={`/projects/${p.id}`} state={{ from: '/' }} className="block w-full text-left p-3 bg-white/80 hover:bg-white border border-black/5 hover:border-blue-300 rounded-lg transition group shadow-sm">
                     <div className="flex justify-between items-center gap-2">
                       <p className="text-xs font-medium text-gray-600 line-clamp-2 leading-relaxed">
                         {p.status_detail || "No status update recorded yet."}
@@ -256,7 +364,7 @@ export default function Projects() {
                     <span className="font-mono opacity-80">EXT: {p.channel_id_external ? 'Connected' : '-'}</span>
                   </div>
                 </div>
-                <Link to={`/projects/${p.id}`} className="text-[10px] font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1 hover:underline">
+                <Link to={`/projects/${p.id}`} state={{ from: '/' }} className="text-[10px] font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1 hover:underline">
                   OPEN DETAILS <ArrowRight size={10} />
                 </Link>
               </div>

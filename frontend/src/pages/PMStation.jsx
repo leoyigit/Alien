@@ -6,7 +6,7 @@ import { useProjects } from '../context/ProjectsContext.jsx';
 import TerminalLoader from '../components/ui/TerminalLoader.jsx';
 import {
   Plus, AlertCircle, ArrowRight, ExternalLink, Save, X,
-  Pencil, RefreshCw, MoreHorizontal, HelpCircle
+  Pencil, RefreshCw, MoreHorizontal, HelpCircle, Search
 } from 'lucide-react';
 import { BLOCKER_OPTS, parseBlocker } from '../utils/constants';
 
@@ -24,6 +24,11 @@ export default function PMStation() {
   const [refreshing, setRefreshing] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'last_active', direction: 'desc' });
 
+  // Filter & Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [pmFilter, setPmFilter] = useState('all');
+  const [devFilter, setDevFilter] = useState('all');
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchProjects(true);
@@ -37,6 +42,10 @@ export default function PMStation() {
 
   const navigate = useNavigate();
   const { showToast } = useToast();
+
+  // Get unique PMs and Devs for filter dropdowns
+  const uniquePMs = ['all', ...new Set(projects.map(p => p.owner).filter(Boolean))];
+  const uniqueDevs = ['all', ...new Set(projects.map(p => p.developer).filter(Boolean))];
 
   const activeProjects = projects.filter(p => p.category !== 'Launched');
 
@@ -77,9 +86,35 @@ export default function PMStation() {
     return sortedProjects.filter(p => p.category === filter).length;
   };
 
-  const filteredProjects = activeFilter === 'All Active'
+  // Apply category filter
+  let filteredProjects = activeFilter === 'All Active'
     ? sortedProjects
     : sortedProjects.filter(p => p.category === activeFilter);
+
+  // Apply search
+  if (searchTerm) {
+    filteredProjects = filteredProjects.filter(p =>
+      p.client_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  // Apply PM filter
+  if (pmFilter !== 'all') {
+    filteredProjects = filteredProjects.filter(p => p.owner === pmFilter);
+  }
+
+  // Apply Dev filter
+  if (devFilter !== 'all') {
+    filteredProjects = filteredProjects.filter(p => p.developer === devFilter);
+  }
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setPmFilter('all');
+    setDevFilter('all');
+  };
+
+  const activeFiltersCount = (searchTerm ? 1 : 0) + (pmFilter !== 'all' ? 1 : 0) + (devFilter !== 'all' ? 1 : 0);
 
   const handleSort = (key) => {
     setSortConfig(current => ({
@@ -204,6 +239,58 @@ export default function PMStation() {
           <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 shadow-lg transition"><Plus size={16} /> New Client</button>
         </div>
       </div>
+
+      {/* FILTER & SEARCH BAR */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-black outline-none"
+            />
+          </div>
+
+          {/* PM Filter */}
+          <select
+            value={pmFilter}
+            onChange={(e) => setPmFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+          >
+            <option value="all">All PMs</option>
+            {uniquePMs.filter(pm => pm !== 'all').map(pm => (
+              <option key={pm} value={pm}>{pm}</option>
+            ))}
+          </select>
+
+          {/* Dev Filter */}
+          <select
+            value={devFilter}
+            onChange={(e) => setDevFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+          >
+            <option value="all">All Devs</option>
+            {uniqueDevs.filter(dev => dev !== 'all').map(dev => (
+              <option key={dev} value={dev}>{dev}</option>
+            ))}
+          </select>
+
+          {/* Clear Filters */}
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold text-sm flex items-center gap-2 transition whitespace-nowrap"
+            >
+              <X size={14} /> Clear ({activeFiltersCount})
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold border-b border-gray-100 select-none">
@@ -219,7 +306,7 @@ export default function PMStation() {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {filteredProjects.map((p) => (
-              <tr key={p.id} onClick={() => navigate(`/projects/${p.id}`)} className="hover:bg-gray-50 transition cursor-pointer group">
+              <tr key={p.id} onClick={() => navigate(`/projects/${p.id}`, { state: { from: '/pm' } })} className="hover:bg-gray-50 transition cursor-pointer group">
                 <td className="p-4 pl-6"><div className="font-bold text-gray-900 flex items-center gap-2">{p.client_name}<ExternalLink size={12} className="opacity-0 group-hover:opacity-100 text-blue-400" /></div><div className="text-xs text-gray-400">{p.owner || "Unassigned"}</div></td>
                 <td className="p-4"><span className={`inline-block px-2.5 py-1 rounded-md text-[10px] font-bold uppercase border ${getCategoryStyle(p.category)}`}>{p.category}</span></td>
                 <td className="p-4"><p className="text-gray-600 text-xs line-clamp-2">{p.status_detail || "No update."}</p></td>

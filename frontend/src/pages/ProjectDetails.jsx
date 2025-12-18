@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { useProjects } from '../context/ProjectsContext';
@@ -231,9 +231,12 @@ export default function ProjectDetails() {
     const totalCount = ALL_CHECKLIST_ITEMS.length;
     const progress = Math.round((completedCount / totalCount) * 100);
 
+    const location = useLocation();
+    const backPath = location.state?.from || '/';
+
     return (
         <div className="max-w-7xl mx-auto p-6 min-h-screen bg-gray-50 font-sans">
-            <Link to="/" className="flex items-center gap-2 text-gray-500 hover:text-black mb-6 font-medium text-sm">
+            <Link to={backPath} className="flex items-center gap-2 text-gray-500 hover:text-black mb-6 font-medium text-sm">
                 <ArrowLeft size={16} /> Back
             </Link>
 
