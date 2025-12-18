@@ -103,8 +103,10 @@ function AppLayout({ children }) {
           <NavLink to="/pm" icon={ClipboardList} label="PM Station" isCollapsed={isCollapsed} />
           <NavLink to="/scanner" icon={Radio} label="Scanner" isCollapsed={isCollapsed} />
           {canAccessSettings() && (
-            <NavLink to="/reports" icon={FileText} label="Reports" isCollapsed={isCollapsed} />
-            <NavLink to="/alien-gpt" icon={Bot} label="AlienGPT" isCollapsed={isCollapsed} />
+            <>
+              <NavLink to="/reports" icon={FileText} label="Reports" isCollapsed={isCollapsed} />
+              <NavLink to="/alien-gpt" icon={Bot} label="AlienGPT" isCollapsed={isCollapsed} />
+            </>
           )}
           <div className="pt-4 mt-4 border-t border-gray-100">
             <NavLink to="/archives" icon={Archive} label="Archives" isCollapsed={isCollapsed} />
