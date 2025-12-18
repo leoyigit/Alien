@@ -233,7 +233,7 @@ export default function ProjectDetails() {
 
     return (
         <div className="max-w-7xl mx-auto p-6 min-h-screen bg-gray-50 font-sans">
-            <Link to="/pm" className="flex items-center gap-2 text-gray-500 hover:text-black mb-6 font-medium text-sm">
+            <Link to="/" className="flex items-center gap-2 text-gray-500 hover:text-black mb-6 font-medium text-sm">
                 <ArrowLeft size={16} /> Back
             </Link>
 
@@ -317,8 +317,12 @@ export default function ProjectDetails() {
                                     </span>
                                 )}
 
-                                <span className="flex items-center gap-1">
-                                    <Hash size={14} /> {project.channel_id_internal ? 'Connected' : 'No Channel'}
+                                <span className="flex items-center gap-1 text-xs">
+                                    <Hash size={14} /> {project.channel_id_internal ? (
+                                        <span className="font-semibold">
+                                            {messageCounts.internal}i • {messageCounts.external}e • {messageCounts.emails}m
+                                        </span>
+                                    ) : 'No Channel'}
                                 </span>
                             </div>
                         </div>
@@ -362,11 +366,11 @@ export default function ProjectDetails() {
                         </div>
                     </div>
                     <div className="grid grid-cols-3 gap-4 border-t border-gray-100 pt-6">
-                        <div>
+                        <div className="overflow-hidden">
                             <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">Live Domain</div>
                             {project.live_url ? (
-                                <a href={project.live_url.startsWith('http') ? project.live_url : `https://${project.live_url}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1">
-                                    {project.live_url} <ExternalLink size={10} />
+                                <a href={project.live_url.startsWith('http') ? project.live_url : `https://${project.live_url}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1 truncate">
+                                    <span className="truncate">{project.live_url}</span> <ExternalLink size={10} className="flex-shrink-0" />
                                 </a>
                             ) : <span className="text-xs text-gray-300 italic">Not deployed</span>}
                         </div>
@@ -403,6 +407,7 @@ export default function ProjectDetails() {
                 <button onClick={() => setActiveTab('chat')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'chat' ? 'border-black' : 'border-transparent text-gray-400'}`}>
                     Communication ({countsLoading ? '...' : messageCounts.internal + messageCounts.external + messageCounts.emails})
                 </button>
+                <button onClick={() => setActiveTab('settings')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'settings' ? 'border-black' : 'border-transparent text-gray-400'}`}>Project Settings</button>
             </div>
 
             {activeTab === 'report' && (
@@ -639,6 +644,95 @@ export default function ProjectDetails() {
                     <div className="col-span-1 md:col-span-2 pt-4 border-t border-gray-100 text-right"><button onClick={handleSaveReport} className="bg-black text-white px-8 py-3 rounded-lg font-bold hover:bg-gray-800 inline-flex items-center gap-2 shadow-lg transition"><Save size={18} /> Save Metadata</button></div>
                 </div>
             )
+            }
+
+            {
+                activeTab === 'settings' && (
+                    <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm max-w-4xl">
+                        <h2 className="text-2xl font-bold mb-6">Project Settings</h2>
+
+                        <div className="space-y-6">
+                            {/* Slack Channels Section */}
+                            <div className="border-b border-gray-100 pb-6">
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <Hash size={18} /> Slack Channels
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Internal Channel ID</label>
+                                        <input
+                                            className="w-full border border-gray-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-black outline-none"
+                                            value={formData.channel_id_internal || ''}
+                                            onChange={e => setFormData({ ...formData, channel_id_internal: e.target.value })}
+                                            placeholder="C0123456789"
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1">Find in Slack: Right-click channel → View channel details → Copy channel ID</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">External Channel ID</label>
+                                        <input
+                                            className="w-full border border-gray-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-black outline-none"
+                                            value={formData.channel_id_external || ''}
+                                            onChange={e => setFormData({ ...formData, channel_id_external: e.target.value })}
+                                            placeholder="C0123456789"
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1">For private/connect channels not visible in Scanner</p>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 mt-4">
+                                    <div className="text-[10px] uppercase font-bold text-gray-400 mb-2">Current Status</div>
+                                    <div className="flex gap-4 text-xs">
+                                        <span className={`flex items-center gap-1 ${formData.channel_id_internal ? 'text-green-600' : 'text-gray-400'}`}>
+                                            <Hash size={12} /> Internal: {formData.channel_id_internal ? '✓ Connected' : '✗ Not set'}
+                                        </span>
+                                        <span className={`flex items-center gap-1 ${formData.channel_id_external ? 'text-green-600' : 'text-gray-400'}`}>
+                                            <Hash size={12} /> External: {formData.channel_id_external ? '✓ Connected' : '✗ Not set'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Launch Dates Section */}
+                            <div className="pb-6">
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <Clock size={18} /> Launch Dates
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Launch Date (Internal)</label>
+                                        <input
+                                            type="date"
+                                            className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-black outline-none"
+                                            value={formData.launch_date_internal || ''}
+                                            onChange={e => setFormData({ ...formData, launch_date_internal: e.target.value })}
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1">When internal team can access the site</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Go Live Date (Public)</label>
+                                        <input
+                                            type="date"
+                                            className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                                            value={formData.launch_date_public || ''}
+                                            onChange={e => setFormData({ ...formData, launch_date_public: e.target.value })}
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1">Public launch date</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Save Button */}
+                            <div className="pt-4 border-t border-gray-100 flex justify-end">
+                                <button
+                                    onClick={handleSaveReport}
+                                    className="bg-black text-white px-8 py-3 rounded-lg font-bold hover:bg-gray-800 inline-flex items-center gap-2 shadow-lg transition"
+                                >
+                                    <Save size={18} /> Save Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
             }
 
             {
