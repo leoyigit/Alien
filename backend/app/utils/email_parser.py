@@ -255,13 +255,13 @@ def match_project_by_domain(email: str, projects: List[Dict]) -> Optional[Dict]:
     
     for project in projects:
         # Check live_url domain
-        live_url = project.get('live_url', '')
-        if domain in live_url.lower():
+        live_url = project.get('live_url') or ''
+        if live_url and domain in live_url.lower():
             return project
             
         # Check shopify_url domain
-        shopify_url = project.get('shopify_url', '')
-        if domain in shopify_url.lower():
+        shopify_url = project.get('shopify_url') or ''
+        if shopify_url and domain in shopify_url.lower():
             return project
             
         # Check client name similarity
