@@ -1,0 +1,291 @@
+@import "tailwindcss";
+
+/* ============================================
+   DARK MODE STYLES - Alien Portal
+   ============================================ */
+
+/* Light mode (default) */
+:root {
+  --bg-page: #f9fafb;
+  --bg-card: #ffffff;
+  --bg-muted: #f3f4f6;
+  --bg-hover: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --border-main: #e5e7eb;
+  --border-light: #f3f4f6;
+}
+
+/* Dark mode */
+.dark {
+  --bg-page: #0f172a;
+  --bg-card: #1e293b;
+  --bg-muted: #334155;
+  --bg-hover: #475569;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --border-main: #475569;
+  --border-light: #334155;
+}
+
+/* ============================================
+   BASE ELEMENT OVERRIDES
+   ============================================ */
+
+body {
+  background-color: var(--bg-page) !important;
+  color: var(--text-primary);
+}
+
+/* Dark mode - Primary bg overrides */
+.dark .bg-gray-50,
+.dark .bg-white {
+  background-color: var(--bg-card) !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: var(--bg-muted) !important;
+}
+
+/* Dark mode - Text overrides */
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: var(--text-primary) !important;
+}
+
+.dark .text-gray-700,
+.dark .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: var(--text-muted) !important;
+}
+
+/* Dark mode - Border overrides */
+.dark .border-gray-200,
+.dark .border-gray-100 {
+  border-color: var(--border-main) !important;
+}
+
+.dark .divide-gray-100> :not([hidden])~ :not([hidden]),
+.dark .divide-gray-50> :not([hidden])~ :not([hidden]) {
+  border-color: var(--border-light) !important;
+}
+
+/* ============================================
+   COMPONENT-SPECIFIC DARK MODE
+   ============================================ */
+
+/* Sidebar */
+.dark aside {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-main) !important;
+}
+
+/* Cards */
+.dark .rounded-2xl,
+.dark .rounded-xl {
+  background-color: var(--bg-card);
+  border-color: var(--border-main);
+}
+
+/* Inputs, textareas, selects */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--bg-muted) !important;
+  border-color: var(--border-main) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #60a5fa !important;
+}
+
+/* Buttons */
+.dark .bg-black {
+  background-color: #3b82f6 !important;
+}
+
+.dark .hover\:bg-gray-100:hover,
+.dark .hover\:bg-gray-50:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Tables */
+.dark table thead {
+  background-color: var(--bg-muted) !important;
+}
+
+.dark table tbody tr:hover {
+  background-color: var(--bg-muted) !important;
+}
+
+/* ============================================
+   BADGE COLORS - More vibrant in dark mode
+   ============================================ */
+
+.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.dark .bg-blue-100 {
+  background-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+.dark .text-blue-700 {
+  color: #93c5fd !important;
+}
+
+.dark .bg-yellow-50 {
+  background-color: rgba(234, 179, 8, 0.15) !important;
+}
+
+.dark .bg-yellow-100 {
+  background-color: rgba(251, 191, 36, 0.3) !important;
+}
+
+.dark .text-yellow-700,
+.dark .text-yellow-800 {
+  color: #fefce8 !important;
+}
+
+.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+.dark .bg-red-100 {
+  background-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+.dark .text-red-700,
+.dark .text-red-600 {
+  color: #fca5a5 !important;
+}
+
+.dark .bg-green-50 {
+  background-color: rgba(34, 197, 94, 0.2) !important;
+}
+
+.dark .bg-green-100 {
+  background-color: rgba(34, 197, 94, 0.25) !important;
+}
+
+.dark .text-green-700 {
+  color: #86efac !important;
+}
+
+.dark .bg-purple-50 {
+  background-color: rgba(168, 85, 247, 0.2) !important;
+}
+
+.dark .bg-purple-100 {
+  background-color: rgba(168, 85, 247, 0.25) !important;
+}
+
+.dark .text-purple-700 {
+  color: #d8b4fe !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: var(--bg-muted) !important;
+}
+
+.dark .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+/* ============================================
+   PROJECT CARD SPECIFIC FIXES
+   ============================================ */
+
+/* Semi-transparent overlays in cards */
+.dark .bg-white\/60,
+.dark .bg-white\/80,
+.dark .bg-white\/40 {
+  background-color: rgba(51, 65, 85, 0.6) !important;
+}
+
+/* Status text boxes - ensure readable text */
+.dark .bg-white\/80 p,
+.dark .bg-white\/60 div,
+.dark .rounded-lg p.text-gray-600 {
+  color: #e2e8f0 !important;
+}
+
+/* Category badges inside cards */
+.dark .rounded-xl .text-blue-700,
+.dark .rounded-xl .text-yellow-800,
+.dark .rounded-xl .text-green-700,
+.dark .rounded-xl .text-red-700 {
+  font-weight: 700;
+}
+
+/* Card footer area */
+.dark .border-black\/5 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Status detail link text */
+.dark .text-xs.font-medium.text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+/* ============================================
+   SPECIAL COMPONENTS
+   ============================================ */
+
+/* Modal overlays */
+.dark .bg-black\/20 {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Login page fix */
+.dark .min-h-screen.bg-gray-900 {
+  background-color: var(--bg-page) !important;
+}
+
+/* ============================================
+   ANIMATED COUNTER
+   ============================================ */
+
+@keyframes countUp {
+  0% {
+    opacity: 0.5;
+    transform: translateY(4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.count-animate {
+  animation: countUp 0.3s ease-out;
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+
+/* Disable transitions on page load */
+.no-transition * {
+  transition: none !important;
+}

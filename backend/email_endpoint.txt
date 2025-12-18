@@ -1,0 +1,18 @@
+# Add this endpoint to backend/app/api/routes.py after the /projects/<project_id>/logs endpoint
+
+@api.route('/projects/<project_id>/emails', methods=['GET'])
+def get_project_emails(project_id):
+    """Fetch emails for a project (source='email')"""
+    try:
+        res = db.table("communication_logs") \
+            .select("*") \
+            .eq("project_id", project_id) \
+            .eq("source", "email") \
+            .order("created_at", desc=True) \
+            .limit(100) \
+            .execute()
+
+        return jsonify(res.data)
+    except Exception as e:
+        print(f"Error fetching emails: {e}")
+        return jsonify({"error": str(e)}), 500
