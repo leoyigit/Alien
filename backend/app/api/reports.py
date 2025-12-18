@@ -143,6 +143,9 @@ Be brief but informative. Focus on actionable insights."""
     
     try:
         # Generate report using OpenAI
+        print(f"[REPORTS] Generating {report_type} report for {len(projects)} projects")
+        print(f"[REPORTS] Context length: {len(context)} chars")
+        
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -154,6 +157,7 @@ Be brief but informative. Focus on actionable insights."""
         )
         
         report_content = response.choices[0].message.content
+        print(f"[REPORTS] Successfully generated report ({len(report_content)} chars)")
         
         return jsonify({
             "success": True,
@@ -163,8 +167,18 @@ Be brief but informative. Focus on actionable insights."""
             "content": report_content
         })
         
+    except openai.AuthenticationError as e:
+        print(f"[REPORTS] OpenAI Authentication Error: {e}")
+        return jsonify({"error": "OpenAI API key is invalid. Please check Settings."}), 401
+    except openai.RateLimitError as e:
+        print(f"[REPORTS] OpenAI Rate Limit Error: {e}")
+        return jsonify({"error": "OpenAI rate limit exceeded. Please try again later."}), 429
+    except openai.APIError as e:
+        print(f"[REPORTS] OpenAI API Error: {e}")
+        return jsonify({"error": f"OpenAI API error: {str(e)}"}), 500
     except Exception as e:
-        print(f"Report generation error: {e}")
+        print(f"[REPORTS] Report generation error: {type(e).__name__}: {e}")
+        traceback.print_exc()
         return jsonify({"error": f"Failed to generate report: {str(e)}"}), 500
 
 
