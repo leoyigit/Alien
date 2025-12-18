@@ -3,5 +3,6 @@ flask-cors
 python-dotenv
 supabase
 slack_sdk
+slack_bolt
 openai
 gunicorn
