@@ -18,7 +18,8 @@ export default function Reports() {
     const [reportHistory, setReportHistory] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [selectedHistoryReport, setSelectedHistoryReport] = useState(null);
-    const [sendTo, setSendTo] = useState('internal'); // internal or external
+    const [sendTo, setSendTo] = useState('channel'); // channel or user
+    const [selectedUser, setSelectedUser] = useState('');
 
     useEffect(() => {
         fetchReportTypes();
@@ -184,20 +185,64 @@ export default function Reports() {
                     ))}
                 </div>
 
-                {/* Send To Dropdown */}
-                <div className="mt-6">
+                {/* Send Options */}
+                <div className="mt-6 space-y-4">
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
-                        Send Report To (Slack)
+                        Send Report To
                     </label>
-                    <select
-                        value={sendTo}
-                        onChange={(e) => setSendTo(e.target.value)}
-                        className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                    >
-                        <option value="internal">Internal Team Only</option>
-                        <option value="external">Internal + External (Shopline)</option>
-                    </select>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose which team receives the Slack notification</p>
+                    
+                    {/* Send Method Selection */}
+                    <div className="flex gap-2 mb-3">
+                        <button
+                            type="button"
+                            onClick={() => setSendTo('channel')}
+                            className={`flex-1 px-4 py-2 rounded-lg font-medium text-sm transition ${
+                                sendTo === 'channel'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                        >
+                            📢 Slack Channel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSendTo('user')}
+                            className={`flex-1 px-4 py-2 rounded-lg font-medium text-sm transition ${
+                                sendTo === 'user'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                        >
+                            👤 Specific User
+                        </button>
+                    </div>
+
+                    {/* User Selection Dropdown (only shown when 'user' is selected) */}
+                    {sendTo === 'user' && (
+                        <select
+                            value={selectedUser}
+                            onChange={(e) => setSelectedUser(e.target.value)}
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-500 outline-none"
+                        >
+                            <option value="">Select a user...</option>
+                            <optgroup label="Internal Team">
+                                <option value="leo">Leo</option>
+                                <option value="internal_member_1">Team Member 1</option>
+                                <option value="internal_member_2">Team Member 2</option>
+                            </optgroup>
+                            <optgroup label="External Team">
+                                <option value="shopline_rep_1">Shopline Rep 1</option>
+                                <option value="shopline_rep_2">Shopline Rep 2</option>
+                                <option value="partner_1">Partner 1</option>
+                            </optgroup>
+                        </select>
+                    )}
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {sendTo === 'channel' 
+                            ? 'Report will be sent to #operations Slack channel' 
+                            : 'Report will be sent as a direct message to the selected user'}
+                    </p>
                 </div>
 
                 {/* Generate Button */}
