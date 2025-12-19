@@ -12,7 +12,7 @@ import re
 import random
 import string
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 reports_api = Blueprint('reports_api', __name__)
 
@@ -108,7 +108,9 @@ def generate_report():
     if not projects:
         return jsonify({"error": "No active projects found"}), 404
     
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Use CET timezone (UTC+1)
+    cet = timezone(timedelta(hours=1))
+    current_time = datetime.now(cet).strftime("%b %d, %Y %H:%M:%S")
     
     # Build context based on report type
     if report_type == 'pm_status':
@@ -127,25 +129,34 @@ def generate_report():
 The report must follow this EXACT structure:
 
 # PM Status Report
-## {all_counts['New / In Progress']} New, {all_counts['Almost Ready']} Almost Ready, {all_counts['Ready']} Ready, {all_counts['Stuck / On Hold']} Stuck, {all_counts['Launched']} Launched (Total: {total_count})
 Report created at: {current_time}
 
-NOTE: This report focuses on ACTIVE projects only (excludes Launched projects from details).
-The counts above show the full portfolio including {all_counts['Launched']} launched projects.
+Group projects by their status category. For EACH category, show:
+1. Category header with emoji and count (e.g., "🔵 NEW / IN PROGRESS (5)")
+2. List each project with ALL details in this format:
 
-Group projects by their status (New / In Progress, Almost Ready, Ready, Stuck / On Hold).
-For each project, include ALL available details in a readable format:
-- Project Name (as a header)
-- PM Notes (status_detail)
-- Update Time (last_updated_at)
-- Blockers
-- Developer & PM
-- Last Call / Contact Date
-- Any other useful information (URLs, next steps)
+Project: [Project Name]
+- PM Notes: [status_detail]
+- Update Time: [last_updated_at in format: Dec 17, 2025 22:54:03]
+- Blockers: [blocker or "None"]
+- Developer & PM: [developer] / [owner]
+- Last Call / Contact Date: [last_contact_date or "N/A"]
+- URLs: [live_url], [shopify_url]
+
+3. Add a blank line between projects for readability
+
+Categories to include:
+- 🔵 NEW / IN PROGRESS ({all_counts['New / In Progress']})
+- 🟡 ALMOST READY ({all_counts['Almost Ready']})
+- 🟢 READY ({all_counts['Ready']})
+- 🔴 STUCK / ON HOLD ({all_counts['Stuck / On Hold']})
+
+Do NOT include Launched projects in details.
 
 Final Section:
 ### Overall Summary & Suggestions
-Provide a high-level overview of the portfolio health and specific suggestions for the team.
+Provide a high-level overview showing total counts: {all_counts['New / In Progress']} New, {all_counts['Almost Ready']} Almost Ready, {all_counts['Ready']} Ready, {all_counts['Stuck / On Hold']} Stuck, {all_counts['Launched']} Launched (Total: {total_count})
+Add specific suggestions for the team.
 
 Be professional, detailed, and highly readable."""
 
@@ -240,6 +251,14 @@ def build_detailed_pm_context(projects):
     lines = []
     
     for p in projects:
+        # Format URLs
+        urls = []
+        if p.get('live_url'):
+            urls.append(p['live_url'])
+        if p.get('shopify_url'):
+            urls.append(p['shopify_url'])
+        urls_str = ', '.join(urls) if urls else 'N/A'
+        
         lines.append(f"""
 PROJ: {p.get('client_name', 'Unknown')}
 - PM: {p.get('owner', 'Unassigned')}
@@ -250,7 +269,7 @@ PROJ: {p.get('client_name', 'Unknown')}
 - LAST UPDATED: {p.get('last_updated_at', 'N/A')}
 - LAST CONTACT: {p.get('last_contact_date', 'N/A')}
 - NEXT CALL: {p.get('next_call', 'N/A')}
-- URLS: {p.get('live_url', 'N/A')}, {p.get('shopify_url', 'N/A')}
+- URLS: {urls_str}
 """)
     
     return "\n".join(lines)
@@ -354,7 +373,7 @@ def send_report_to_slack():
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"📊 *{report_title}*\nGenerated: {datetime.now().strftime('%b %d, %Y at %I:%M %p')}"
+                    "text": f"📊 *{report_title}*\nGenerated: {datetime.now(timezone(timedelta(hours=1))).strftime('%b %d, %Y at %I:%M %p')}"
                 }
             },
             {"type": "divider"}
