@@ -8,17 +8,18 @@ export function useTheme() {
 
 export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
+        // Force light mode on first load, clear any dark class
+        document.documentElement.classList.remove('dark');
         const saved = localStorage.getItem('alien_theme');
         return saved || 'light';
     });
 
     useEffect(() => {
         localStorage.setItem('alien_theme', theme);
-        // Apply theme to document
+        // Apply theme to document - ALWAYS remove first to clear
+        document.documentElement.classList.remove('dark');
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
         }
     }, [theme]);
 
