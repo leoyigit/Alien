@@ -24,7 +24,7 @@ export default function Reports() {
 
     useEffect(() => {
         fetchReportTypes();
-        fetchReport History();
+        fetchReportHistory();
         fetchTeamMembers();
     }, []);
     
