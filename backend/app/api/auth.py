@@ -256,22 +256,6 @@ def update_user(user_id):
         return jsonify({"error": str(e)}), 500
 
 
-@auth.route('/users/<user_id>', methods=['DELETE'])
-@require_auth
-@require_role('superadmin')
-def delete_user(user_id):
-    """Delete a user (removes from portal_users, auth.users handles cascade)."""
-    try:
-        # Don't allow self-deletion
-        if user_id == g.user['id']:
-            return jsonify({"error": "Cannot delete yourself"}), 400
-        
-        db.table("portal_users").delete().eq("id", user_id).execute()
-        return jsonify({"success": True, "message": "User deleted"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @auth.route('/forgot-password', methods=['POST'])
 def forgot_password():
     """Send password reset email."""
