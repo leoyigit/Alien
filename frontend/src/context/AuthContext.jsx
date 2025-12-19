@@ -141,19 +141,6 @@ export function AuthProvider({ children }) {
         }
     };
 
-    const logout = async () => {
-        try {
-            await api.post('/auth/logout');
-        } catch (e) {
-            console.error('Logout error:', e);
-        } finally {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            delete api.defaults.headers.common['Authorization'];
-            setUser(null);
-        }
-    };
-
     // Role-based access helpers
     const hasRole = (...roles) => {
         if (!user) return false;

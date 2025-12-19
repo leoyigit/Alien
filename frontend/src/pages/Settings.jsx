@@ -132,12 +132,56 @@ export default function Settings() {
     };
 
     const handleUpdateUserRole = async (userId, newRole) => {
+        setSaving(userId);
         try {
-            await api.put(`/auth/users/${userId}`, { role: newRole });
+            await api.put(`/auth/users/${userId}/role`, { role: newRole });
             setMessage({ type: 'success', text: 'User role updated!' });
             fetchUsers();
         } catch (e) {
             setMessage({ type: 'error', text: e.response?.data?.error || 'Failed to update' });
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    const handleApproveUser = async (userId) => {
+        setSaving(userId);
+        try {
+            await api.post(`/auth/users/${userId}/approve`);
+            setMessage({ type: 'success', text: 'User approved!' });
+            fetchUsers();
+        } catch (e) {
+            setMessage({ type: 'error', text: e.response?.data?.error || 'Failed to approve' });
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    const handleRejectUser = async (userId) => {
+        if (!window.confirm('Are you sure you want to reject this user?')) return;
+        setSaving(userId);
+        try {
+            await api.post(`/auth/users/${userId}/reject`);
+            setMessage({ type: 'success', text: 'User rejected' });
+            fetchUsers();
+        } catch (e) {
+            setMessage({ type: 'error', text: e.response?.data?.error || 'Failed to reject' });
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    const handleDeleteUser = async (userId) => {
+        if (!window.confirm('Are you sure you want to delete this user? This cannot be undone.')) return;
+        setSaving(userId);
+        try {
+            await api.delete(`/auth/users/${userId}`);
+            setMessage({ type: 'success', text: 'User deleted' });
+            fetchUsers();
+        } catch (e) {
+            setMessage({ type: 'error', text: e.response?.data?.error || 'Failed to delete' });
+        } finally {
+            setSaving(null);
         }
     };
 
@@ -377,9 +421,52 @@ export default function Settings() {
                         <h3 className="font-bold text-lg">Portal Users</h3>
                         <p className="text-gray-500 dark:text-gray-400 text-sm">Manage user roles and permissions</p>
                     </div>
+
+                    {/* Pending Users Section */}
+                    {users.filter(u => u.status === 'pending').length > 0 && (
+                        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-100 dark:border-yellow-900/30">
+                            <div className="flex items-center gap-2 mb-3">
+                                <AlertCircle size={16} className="text-yellow-600" />
+                                <h4 className="font-bold text-yellow-900 dark:text-yellow-200">Pending Approval ({users.filter(u => u.status === 'pending').length})</h4>
+                            </div>
+                            <div className="space-y-2">
+                                {users.filter(u => u.status === 'pending').map(u => (
+                                    <div key={u.id} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
+                                        <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center font-bold text-yellow-700">
+                                            {u.display_name?.charAt(0) || u.email?.charAt(0) || '?'}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-gray-900 dark:text-white truncate">{u.display_name || 'Unnamed'}</div>
+                                            <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{u.email}</div>
+                                        </div>
+                                        <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">
+                                            Pending
+                                        </span>
+                                        <button
+                                            onClick={() => handleApproveUser(u.id)}
+                                            disabled={saving === u.id}
+                                            className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                                        >
+                                            {saving === u.id ? <Loader size={14} className="animate-spin" /> : <Check size={14} />}
+                                            Approve
+                                        </button>
+                                        <button
+                                            onClick={() => handleRejectUser(u.id)}
+                                            disabled={saving === u.id}
+                                            className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                                        >
+                                            <X size={14} />
+                                            Reject
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {users.map(u => (
-                            <div key={u.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:bg-gray-900 transition">
+                        {users.filter(u => u.status !== 'pending').map(u => (
+                            <div key={u.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition">
                                 <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-gray-600">
                                     {u.display_name?.charAt(0) || u.email?.charAt(0) || '?'}
                                 </div>
@@ -387,17 +474,31 @@ export default function Settings() {
                                     <div className="font-bold text-gray-900 dark:text-white truncate">{u.display_name || 'Unnamed'}</div>
                                     <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{u.email}</div>
                                 </div>
+                                {u.status === 'rejected' && (
+                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                                        Rejected
+                                    </span>
+                                )}
                                 <select
                                     value={u.role}
                                     onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                                    disabled={u.email === user?.email}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-bold border ${getRoleBadgeColor(u.role)} ${u.email === user?.email ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                    disabled={u.email === user?.email || saving === u.id || u.status === 'rejected'}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-bold border ${getRoleBadgeColor(u.role)} ${u.email === user?.email || u.status === 'rejected' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                 >
                                     <option value="superadmin">Superadmin</option>
                                     <option value="internal">Internal</option>
                                     <option value="shopline">Shopline</option>
                                     <option value="merchant">Merchant</option>
                                 </select>
+                                {u.email !== user?.email && (
+                                    <button
+                                        onClick={() => handleDeleteUser(u.id)}
+                                        disabled={saving === u.id}
+                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                                    >
+                                        {saving === u.id ? <Loader size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>

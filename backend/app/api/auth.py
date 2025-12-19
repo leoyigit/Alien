@@ -91,6 +91,13 @@ def login():
         profile_data = None
         if profile.data:
             profile_data = profile.data[0]
+            
+            # Check user status
+            user_status = profile_data.get('status', 'approved')  # Default to approved for existing users
+            if user_status == 'pending':
+                return jsonify({"error": "Your account is pending approval. Please wait for an administrator to approve your account."}), 403
+            elif user_status == 'rejected':
+                return jsonify({"error": "Your account has been rejected. Please contact an administrator."}), 403
         else:
             # Self-healing: Create missing profile
             try:
@@ -109,12 +116,14 @@ def login():
                     "id": response.user.id,
                     "email": email,
                     "role": role,
+                    "status": "pending",  # New users start as pending
                     "display_name": email.split('@')[0]
                 }
                 # Use admin_db to bypass RLS policies
                 admin_db.table("portal_users").insert(new_profile).execute()
                 profile_data = new_profile
                 print(f"Self-healed missing profile for {email}")
+                return jsonify({"error": "Your account has been created and is pending approval. Please wait for an administrator to approve your account."}), 403
             except Exception as e:
                 error_msg = str(e)
                 print(f"Failed to self-heal profile: {error_msg}")
@@ -286,3 +295,99 @@ def forgot_password():
             "success": True,
             "message": "If an account exists with this email, you will receive a reset link"
         })
+
+
+# =============================================================================
+# USER MANAGEMENT (Superadmin only)
+# =============================================================================
+
+@auth.route('/users', methods=['GET'])
+@require_auth
+@require_role('superadmin')
+def get_all_users():
+    """Get all portal users with optional status filter."""
+    status_filter = request.args.get('status')  # pending, approved, rejected
+    
+    try:
+        query = admin_db.table("portal_users").select("id, email, role, status, display_name, created_at")
+        
+        if status_filter:
+            query = query.eq("status", status_filter)
+        
+        result = query.order("created_at", desc=True).execute()
+        return jsonify(result.data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@auth.route('/users/<user_id>/approve', methods=['POST'])
+@require_auth
+@require_role('superadmin')
+def approve_user(user_id):
+    """Approve a pending user."""
+    try:
+        admin_db.table("portal_users").update({
+            "status": "approved"
+        }).eq("id", user_id).execute()
+        
+        return jsonify({"success": True, "message": "User approved"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@auth.route('/users/<user_id>/reject', methods=['POST'])
+@require_auth
+@require_role('superadmin')
+def reject_user(user_id):
+    """Reject a pending user."""
+    try:
+        admin_db.table("portal_users").update({
+            "status": "rejected"
+        }).eq("id", user_id).execute()
+        
+        return jsonify({"success": True, "message": "User rejected"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@auth.route('/users/<user_id>/role', methods=['PUT'])
+@require_auth
+@require_role('superadmin')
+def change_user_role(user_id):
+    """Change a user's role."""
+    data = request.json
+    new_role = data.get('role')
+    
+    valid_roles = ['superadmin', 'internal', 'shopline', 'merchant']
+    if new_role not in valid_roles:
+        return jsonify({"error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"}), 400
+    
+    try:
+        admin_db.table("portal_users").update({
+            "role": new_role
+        }).eq("id", user_id).execute()
+        
+        return jsonify({"success": True, "message": f"User role updated to {new_role}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@auth.route('/users/<user_id>', methods=['DELETE'])
+@require_auth
+@require_role('superadmin')
+def delete_user(user_id):
+    """Delete a user (superadmin only)."""
+    # Prevent self-deletion
+    if user_id == g.user['id']:
+        return jsonify({"error": "Cannot delete your own account"}), 400
+    
+    try:
+        # Delete from portal_users
+        admin_db.table("portal_users").delete().eq("id", user_id).execute()
+        
+        # Note: Supabase auth user will remain, but they won't have a profile
+        # To fully delete, you'd need to use Supabase Admin API
+        
+        return jsonify({"success": True, "message": "User deleted"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
