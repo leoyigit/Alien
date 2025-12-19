@@ -731,7 +731,7 @@ export default function ProjectDetails() {
 
             {
                 activeTab === 'chat' && (
-                    <div className="max-w-3xl mx-auto">
+                    <div className="max-w-3xl mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen">
                         {/* Internal / External / Emails Tab Selector */}
                         <div className="flex justify-center mb-6">
                             <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-xl">

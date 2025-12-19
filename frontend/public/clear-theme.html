@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Theme</title>
+</head>
+<body>
+    <h1>Theme Cleared!</h1>
+    <p>Reload the app now.</p>
+    <script>
+        localStorage.removeItem('alien_theme');
+        document.documentElement.classList.remove('dark');
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1000);
+    </script>
+</body>
+</html>

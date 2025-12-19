@@ -173,7 +173,7 @@ export default function Settings() {
     }
 
     return (
-        <div className="max-w-5xl mx-auto p-8">
+        <div className="max-w-5xl mx-auto p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div className="flex items-center gap-3 mb-8">
                 <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center">
                     <SettingsIcon size={24} className="text-white" />

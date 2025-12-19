@@ -20,11 +20,22 @@ export default function Reports() {
     const [selectedHistoryReport, setSelectedHistoryReport] = useState(null);
     const [sendTo, setSendTo] = useState('channel'); // channel or user
     const [selectedUser, setSelectedUser] = useState('');
+    const [teamMembers, setTeamMembers] = useState([]);
 
     useEffect(() => {
         fetchReportTypes();
-        fetchReportHistory();
+        fetchReport History();
+        fetchTeamMembers();
     }, []);
+    
+    const fetchTeamMembers = async () => {
+        try {
+            const res = await api.get('/settings/team');
+            setTeamMembers(res.data || []);
+        } catch (err) {
+            console.error('Failed to fetch team members');
+        }
+    };
 
     const fetchReportTypes = async () => {
         try {
@@ -148,7 +159,7 @@ export default function Reports() {
     }
 
     return (
-        <div className="max-w-5xl mx-auto p-8">
+        <div className="max-w-5xl mx-auto p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             {/* Header */}
             <div className="flex items-center gap-3 mb-8">
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -226,14 +237,14 @@ export default function Reports() {
                         >
                             <option value="">Select a user...</option>
                             <optgroup label="Internal Team">
-                                <option value="leo">Leo</option>
-                                <option value="internal_member_1">Team Member 1</option>
-                                <option value="internal_member_2">Team Member 2</option>
+                                {teamMembers.filter(m => m.email && (m.email.includes('@flyrank.com') || m.email.includes('@powercommerce.com'))).map(m => (
+                                    <option key={m.email} value={m.email}>{m.name}</option>
+                                ))}
                             </optgroup>
                             <optgroup label="External Team">
-                                <option value="shopline_rep_1">Shopline Rep 1</option>
-                                <option value="shopline_rep_2">Shopline Rep 2</option>
-                                <option value="partner_1">Partner 1</option>
+                                {teamMembers.filter(m => m.email && m.email.includes('@shopline.com')).map(m => (
+                                    <option key={m.email} value={m.email}>{m.name}</option>
+                                ))}
                             </optgroup>
                         </select>
                     )}
