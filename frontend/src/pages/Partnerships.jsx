@@ -56,7 +56,7 @@ export default function Partnerships() {
     if (loading) return <TerminalLoader />;
 
     return (
-        <div className="max-w-7xl mx-auto p-8">
+        <div className="max-w-7xl mx-auto p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             {/* HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
                 <div>

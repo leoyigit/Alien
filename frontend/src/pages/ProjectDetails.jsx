@@ -226,7 +226,7 @@ export default function ProjectDetails() {
     const backPath = location.state?.from || '/';
 
     return (
-        <div className="max-w-7xl mx-auto p-6 min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+        <div className="max-w-7xl mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen p-6 min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
             <Link to={backPath} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-black mb-6 font-medium text-sm">
                 <ArrowLeft size={16} /> Back
             </Link>
