@@ -179,7 +179,7 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="animate-pulse text-gray-400 dark:text-gray-500 font-mono">Loading...</div>
       </div>
     );
