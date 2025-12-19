@@ -5,4 +5,5 @@ supabase
 slack_sdk
 slack_bolt
 openai
+python-dateutil
 gunicorn

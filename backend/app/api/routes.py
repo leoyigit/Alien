@@ -316,6 +316,40 @@ def unignore_channel():
         return jsonify({"error": str(e)}), 500
 
 
+@api.route('/mapped-channels', methods=['GET'])
+def get_mapped_channels():
+    """Get all channels that are already mapped to projects/partnerships."""
+    try:
+        # Fetch all projects with their channel IDs
+        projects = db.table("projects").select("id, client_name, channel_id_internal, channel_id_external, is_partnership").execute()
+        
+        mapped_channels = []
+        for p in projects.data:
+            # Add internal channel if exists
+            if p.get('channel_id_internal'):
+                mapped_channels.append({
+                    "channel_id": p['channel_id_internal'],
+                    "project_id": p['id'],
+                    "project_name": p['client_name'],
+                    "role": "internal",
+                    "is_partnership": p.get('is_partnership', False)
+                })
+            
+            # Add external channel if exists
+            if p.get('channel_id_external'):
+                mapped_channels.append({
+                    "channel_id": p['channel_id_external'],
+                    "project_id": p['id'],
+                    "project_name": p['client_name'],
+                    "role": "external",
+                    "is_partnership": p.get('is_partnership', False)
+                })
+        
+        return jsonify(mapped_channels)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ---------------------------------------------------------
 # 📊 DASHBOARD & REPORTING
 # ---------------------------------------------------------

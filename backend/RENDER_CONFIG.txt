@@ -1,0 +1,18 @@
+# Production optimizations for Alien Backend
+# Copy this to Render Dashboard > Settings > Start Command
+
+gunicorn --workers=1 --threads=2 --timeout=120 --max-requests=1000 --max-requests-jitter=50 --worker-class=sync --bind=0.0.0.0:$PORT main:app
+
+# Memory Optimization Settings:
+# --workers=1          : Single worker (reduces memory ~75%)
+# --threads=2          : Handle concurrent requests efficiently
+# --timeout=120        : 2 min timeout for long requests
+# --max-requests=1000  : Restart worker after 1000 requests (prevents memory leaks)
+# --max-requests-jitter=50 : Random jitter to prevent all workers restarting at once
+# --worker-class=sync  : Synchronous workers (lower memory than async)
+# --bind=0.0.0.0:$PORT : Bind to Render's assigned port
+
+# Also ensure in Render Dashboard:
+# - Environment: Production
+# - Auto-Deploy: Yes
+# - Health Check Path: /api/health (if you have one, otherwise skip)

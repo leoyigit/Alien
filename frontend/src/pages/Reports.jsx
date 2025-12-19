@@ -6,6 +6,7 @@ import {
     ClipboardList, BarChart3, MessageSquare, Sparkles, Calendar, Trash2, X
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import jsPDF from 'jspdf';
 
 export default function Reports() {
     const { canEditProject, user } = useAuth();
@@ -21,6 +22,7 @@ export default function Reports() {
     const [sendTo, setSendTo] = useState('channel'); // channel or user
     const [selectedUser, setSelectedUser] = useState('');
     const [teamMembers, setTeamMembers] = useState([]);
+    const [userFilter, setUserFilter] = useState('all'); // 'all', 'internal', 'external'
 
     useEffect(() => {
         fetchReportTypes();
@@ -31,7 +33,12 @@ export default function Reports() {
     const fetchTeamMembers = async () => {
         try {
             const res = await api.get('/settings/team');
-            setTeamMembers(res.data || []);
+            // Filter out merchant users, keep only internal (flyrank/powercommerce) and external (shopline)
+            const filtered = (res.data || []).filter(member => {
+                const role = member.role?.toLowerCase();
+                return role === 'internal' || role === 'shopline';
+            });
+            setTeamMembers(filtered);
         } catch (err) {
             console.error('Failed to fetch team members');
         }
@@ -139,6 +146,98 @@ export default function Reports() {
         }
     };
 
+    const handleDownloadPDF = () => {
+        if (!selectedHistoryReport) return;
+
+        const reportTitle = reportTypes.find(t => t.id === selectedHistoryReport.report_type)?.name || 'Report';
+        const date = new Date(selectedHistoryReport.generated_at).toLocaleString();
+        const creator = selectedHistoryReport.generated_by_name || 'Unknown';
+        const docId = selectedHistoryReport.report_id;
+
+        // Create PDF
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        const maxWidth = pageWidth - (margin * 2);
+        let yPos = 20;
+
+        // Header
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text(reportTitle, margin, yPos);
+        yPos += 10;
+
+        // Metadata
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Report created at: ${date}`, margin, yPos);
+        yPos += 6;
+        doc.text(`Created by: ${creator}`, margin, yPos);
+        yPos += 6;
+        doc.text(`Doc. ID: ${docId}`, margin, yPos);
+        yPos += 12;
+
+        // Line separator
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 10;
+
+        // Content
+        doc.setFontSize(10);
+        const lines = selectedHistoryReport.content.split('\n');
+
+        lines.forEach((line) => {
+            // Check if we need a new page
+            if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            if (line.startsWith('# ')) {
+                doc.setFontSize(16);
+                doc.setFont(undefined, 'bold');
+                const text = line.slice(2);
+                const splitText = doc.splitTextToSize(text, maxWidth);
+                doc.text(splitText, margin, yPos);
+                yPos += splitText.length * 8;
+                doc.setFontSize(10);
+            } else if (line.startsWith('## ')) {
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                const text = line.slice(3);
+                const splitText = doc.splitTextToSize(text, maxWidth);
+                doc.text(splitText, margin, yPos);
+                yPos += splitText.length * 7;
+                doc.setFontSize(10);
+            } else if (line.startsWith('### ')) {
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                const text = line.slice(4);
+                const splitText = doc.splitTextToSize(text, maxWidth);
+                doc.text(splitText, margin, yPos);
+                yPos += splitText.length * 6;
+                doc.setFontSize(10);
+            } else if (line.startsWith('- ') || line.startsWith('* ')) {
+                doc.setFont(undefined, 'normal');
+                const text = '• ' + line.slice(2);
+                const splitText = doc.splitTextToSize(text, maxWidth - 5);
+                doc.text(splitText, margin + 5, yPos);
+                yPos += splitText.length * 5;
+            } else if (line.trim() === '') {
+                yPos += 4;
+            } else {
+                doc.setFont(undefined, 'normal');
+                const splitText = doc.splitTextToSize(line, maxWidth);
+                doc.text(splitText, margin, yPos);
+                yPos += splitText.length * 5;
+            }
+        });
+
+        // Save PDF
+        doc.save(`${docId}_${reportTitle.replace(/ /g, '_')}.pdf`);
+        showToast('PDF downloaded successfully!', 'success');
+    };
+
     const getTypeIcon = (typeId) => {
         switch (typeId) {
             case 'pm_status': return <ClipboardList size={20} />;
@@ -181,13 +280,13 @@ export default function Reports() {
                         <button
                             key={type.id}
                             onClick={() => setSelectedType(type.id)}
-                            className={`p - 4 rounded - xl border - 2 text - left transition ${selectedType === type.id
-                                ? 'border-purple-500 bg-purple-50'
-                                : 'border-gray-200 hover:border-gray-300 bg-white dark:bg-gray-800'
-                                } `}
+                            className={`p-4 rounded-xl border-2 text-left transition ${selectedType === type.id
+                                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                                }`}
                         >
                             <div className="flex items-center gap-3 mb-2">
-                                <div className={`p - 2 rounded - lg ${selectedType === type.id ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'} `}>
+                                <div className={`p-2 rounded-lg ${selectedType === type.id ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>
                                     {getTypeIcon(type.id)}
                                 </div>
                                 <span className="text-2xl">{type.icon}</span>
@@ -466,32 +565,34 @@ export default function Reports() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedHistoryReport(null)}>
                     <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         {/* Modal Header */}
-                        <div className="p-6 border-b border-gray-100 bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
-                            <div>
-                                <h3 className="font-bold text-lg text-gray-900 dark:text-white">
-                                    {reportTypes.find(t => t.id === selectedHistoryReport.report_type)?.name || 'Report'}
-                                </h3>
-                                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    <span className="flex items-center gap-1">
-                                        <Calendar size={14} />
-                                        {new Date(selectedHistoryReport.generated_at).toLocaleString()}
-                                    </span>
-                                    <span>{selectedHistoryReport.project_count} projects</span>
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                    <h3 className="font-black text-2xl text-gray-900 dark:text-white mb-2">
+                                        {reportTypes.find(t => t.id === selectedHistoryReport.report_type)?.name || 'Report'}
+                                    </h3>
+                                    <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                        <div>Report created at: <span className="font-medium text-gray-900 dark:text-white">{new Date(selectedHistoryReport.generated_at).toLocaleString()}</span></div>
+                                        <div>Created by: <span className="font-medium text-gray-900 dark:text-white">{selectedHistoryReport.generated_by_name || 'Unknown'}</span></div>
+                                        <div>Doc. ID: <span className="font-mono font-bold text-purple-600 dark:text-purple-400">{selectedHistoryReport.report_id}</span></div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
                                     <button
-                                        onClick={() => handleCopyReportId(selectedHistoryReport.report_id)}
-                                        className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded font-mono text-xs font-bold hover:bg-purple-200 transition"
+                                        onClick={handleDownloadPDF}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
                                     >
-                                        ID: {selectedHistoryReport.report_id}
-                                        <Copy size={12} />
+                                        <Download size={16} />
+                                        Download
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedHistoryReport(null)}
+                                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition"
+                                    >
+                                        <X size={20} className="text-gray-600 dark:text-gray-400" />
                                     </button>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => setSelectedHistoryReport(null)}
-                                className="p-2 hover:bg-gray-200 rounded-lg transition"
-                            >
-                                <X size={20} />
-                            </button>
                         </div>
 
                         {/* Modal Content */}
@@ -502,7 +603,7 @@ export default function Reports() {
                                         return <h1 key={i} className="text-2xl font-black text-gray-900 dark:text-white mt-6 mb-4">{line.slice(2)}</h1>;
                                     }
                                     if (line.startsWith('## ')) {
-                                        return <h2 key={i} className="text-xl font-bold text-gray-800 dark:text-gray-100 mt-5 mb-3 border-b pb-2">{line.slice(3)}</h2>;
+                                        return <h2 key={i} className="text-xl font-black text-gray-900 dark:text-white mt-5 mb-3 border-b border-gray-300 dark:border-gray-600 pb-2">{line.slice(3)}</h2>;
                                     }
                                     if (line.startsWith('### ')) {
                                         return <h3 key={i} className="text-lg font-bold text-gray-700 dark:text-gray-200 mt-4 mb-2">{line.slice(4)}</h3>;

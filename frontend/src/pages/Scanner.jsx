@@ -6,11 +6,12 @@ import { useToast } from '../context/ToastContext';
 export default function Scanner() {
   const [channels, setChannels] = useState([]);
   const [ignoredChannels, setIgnoredChannels] = useState([]);
+  const [mappedChannels, setMappedChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [clientNames, setClientNames] = useState({});
-  const [filterTab, setFilterTab] = useState('unmapped'); // 'unmapped', 'ignored', 'all'
+  const [filterTab, setFilterTab] = useState('unmapped'); // 'unmapped', 'ignored', 'mapped', 'all'
   const [selectedChannels, setSelectedChannels] = useState(new Set());
   const [bulkClientName, setBulkClientName] = useState('');
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -49,9 +50,19 @@ export default function Scanner() {
     }
   };
 
+  const fetchMappedChannels = async () => {
+    try {
+      const response = await api.get('/mapped-channels');
+      setMappedChannels(response.data || []);
+    } catch (err) {
+      console.error('Failed to fetch mapped channels:', err);
+    }
+  };
+
   useEffect(() => {
     fetchChannels();
     fetchIgnoredChannels();
+    fetchMappedChannels();
   }, []);
 
   const handleMapAsProject = async (channelId, role) => {
@@ -232,6 +243,17 @@ export default function Scanner() {
     displayChannels = channels;
   } else if (filterTab === 'ignored') {
     displayChannels = ignoredChannels.map(ig => ({ id: ig.channel_id, name: ig.channel_name, members_count: 0, isIgnored: true }));
+  } else if (filterTab === 'mapped') {
+    displayChannels = mappedChannels.map(m => ({
+      id: m.channel_id,
+      name: `Channel mapped to ${m.project_name}`,
+      project_name: m.project_name,
+      project_id: m.project_id,
+      role: m.role,
+      is_partnership: m.is_partnership,
+      members_count: 0,
+      isMapped: true
+    }));
   } else if (filterTab === 'all') {
     const ignoredIds = new Set(ignoredChannels.map(ig => ig.channel_id));
     displayChannels = [
@@ -292,6 +314,12 @@ export default function Scanner() {
           className={`px-4 py-2 rounded-lg font-medium text-sm transition ${filterTab === 'ignored' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'}`}
         >
           Ignored ({ignoredChannels.length})
+        </button>
+        <button
+          onClick={() => setFilterTab('mapped')}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition ${filterTab === 'mapped' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'}`}
+        >
+          Mapped ({mappedChannels.length})
         </button>
         <button
           onClick={() => setFilterTab('all')}
@@ -390,11 +418,20 @@ export default function Scanner() {
                     )}
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-900 dark:text-white">#{ch.name}</span>
-                        {getRoleBadge(detectedRole)}
+                        <span className="font-bold text-gray-900 dark:text-white">
+                          {ch.isMapped ? ch.project_name : `#${ch.name}`}
+                        </span>
+                        {getRoleBadge(ch.isMapped ? ch.role : detectedRole)}
                         {ch.isIgnored && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-semibold">Ignored</span>}
+                        {ch.isMapped && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${ch.is_partnership ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'}`}>
+                            {ch.is_partnership ? 'Partnership' : 'Project'}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{ch.members_count} members</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {ch.isMapped ? `${ch.role} channel` : `${ch.members_count} members`}
+                      </div>
                     </td>
                     {filterTab !== 'ignored' && (
                       <td className="p-4">
@@ -416,7 +453,11 @@ export default function Scanner() {
                     )}
                     <td className="p-4">
                       <div className="flex items-center justify-end gap-2">
-                        {ch.isIgnored ? (
+                        {ch.isMapped ? (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 italic">
+                            Already mapped to {ch.project_name}
+                          </span>
+                        ) : ch.isIgnored ? (
                           <>
                             <button
                               onClick={() => handleUnignore(ch.id, ch.name)}
