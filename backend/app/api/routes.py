@@ -226,6 +226,80 @@ def ignore_channel():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@api.route('/ignored-channels', methods=['GET'])
+def get_ignored_channels():
+    """Fetch list of ignored channels."""
+    try:
+        result = db.table("ignored_channels").select("*").execute()
+        return jsonify(result.data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/bulk-ignore-channels', methods=['POST'])
+def bulk_ignore_channels():
+    """Ignore multiple channels at once."""
+    data = request.json
+    channel_ids = data.get("channel_ids", [])
+    
+    if not channel_ids:
+        return jsonify({"error": "No channel IDs provided"}), 400
+    
+    try:
+        # Insert all ignored channels
+        records = [{"channel_id": ch_id, "channel_name": data.get("channel_names", {}).get(ch_id, "unknown")} 
+                   for ch_id in channel_ids]
+        db.table("ignored_channels").insert(records).execute()
+        return jsonify({"success": True, "count": len(channel_ids)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/bulk-map-channels', methods=['POST'])
+def bulk_map_channels():
+    """Map multiple channels at once to projects or partnerships."""
+    data = request.json
+    channel_ids = data.get("channel_ids", [])
+    client_name = data.get("client_name")
+    is_partnership = data.get("is_partnership", False)
+    role = data.get("role", "external")
+    
+    if not channel_ids or not client_name:
+        return jsonify({"error": "Missing channel_ids or client_name"}), 400
+    
+    try:
+        # For bulk operations, we'll create separate projects for each channel
+        # using the client name as a base
+        for idx, ch_id in enumerate(channel_ids):
+            # If multiple channels, append number to client name
+            final_name = f"{client_name} {idx + 1}" if len(channel_ids) > 1 else client_name
+            
+            # Check if project exists
+            res = db.table("projects").select("id").eq("client_name", final_name).execute()
+            
+            field_to_update = "channel_id_internal" if role == "internal" else "channel_id_external"
+            
+            if not res.data:
+                # Create new
+                db.table("projects").insert({
+                    "client_name": final_name,
+                    field_to_update: ch_id,
+                    "status_overview": "Initialized via Scanner (Bulk)",
+                    "is_partnership": is_partnership
+                }).execute()
+            else:
+                # Update existing
+                db.table("projects").update({
+                    field_to_update: ch_id,
+                    "is_partnership": is_partnership
+                }).eq("client_name", final_name).execute()
+        
+        return jsonify({"success": True, "count": len(channel_ids)})
+    except Exception as e:
+        print(f"❌ bulk_map_channels error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 # ---------------------------------------------------------
 # 📊 DASHBOARD & REPORTING
 # ---------------------------------------------------------
