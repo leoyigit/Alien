@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
     FileText, Loader, AlertCircle, RefreshCw, Download, Copy, Check,
-    ClipboardList, BarChart3, MessageSquare, Sparkles, Calendar
+    ClipboardList, BarChart3, MessageSquare, Sparkles, Calendar, Trash2
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
@@ -18,6 +18,7 @@ export default function Reports() {
     const [reportHistory, setReportHistory] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [selectedHistoryReport, setSelectedHistoryReport] = useState(null);
+    const [sendTo, setSendTo] = useState('internal'); // internal or external
 
     useEffect(() => {
         fetchReportTypes();
@@ -98,7 +99,7 @@ export default function Reports() {
 
     const handleViewHistoryReport = async (reportId) => {
         try {
-            const res = await api.get(`/reports/${reportId}`);
+            const res = await api.get(`/ reports / ${reportId} `);
             setSelectedHistoryReport(res.data);
         } catch (e) {
             console.error('Error loading report:', e);
@@ -110,6 +111,18 @@ export default function Reports() {
     const handleCopyReportId = async (reportId) => {
         await navigator.clipboard.writeText(reportId);
         showToast(`Report ID ${reportId} copied!`, 'success');
+    };
+
+    const handleDeleteReport = async (reportId) => {
+        if (!confirm('Are you sure you want to delete this report?')) return;
+
+        try {
+            await api.delete(`/ reports / history / ${reportId} `);
+            showToast('Report deleted!', 'success');
+            fetchReportHistory(); // Refresh the list
+        } catch (e) {
+            showToast(e.response?.data?.error || 'Failed to delete report', 'error');
+        }
     };
 
     const getTypeIcon = (typeId) => {
@@ -154,13 +167,13 @@ export default function Reports() {
                         <button
                             key={type.id}
                             onClick={() => setSelectedType(type.id)}
-                            className={`p-4 rounded-xl border-2 text-left transition ${selectedType === type.id
+                            className={`p - 4 rounded - xl border - 2 text - left transition ${selectedType === type.id
                                 ? 'border-purple-500 bg-purple-50'
                                 : 'border-gray-200 hover:border-gray-300 bg-white'
-                                }`}
+                                } `}
                         >
                             <div className="flex items-center gap-3 mb-2">
-                                <div className={`p-2 rounded-lg ${selectedType === type.id ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                <div className={`p - 2 rounded - lg ${selectedType === type.id ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-500'} `}>
                                     {getTypeIcon(type.id)}
                                 </div>
                                 <span className="text-2xl">{type.icon}</span>
@@ -169,6 +182,22 @@ export default function Reports() {
                             <p className="text-sm text-gray-500 mt-1">{type.description}</p>
                         </button>
                     ))}
+                </div>
+
+                {/* Send To Dropdown */}
+                <div className="mt-6">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                        Send Report To (Slack)
+                    </label>
+                    <select
+                        value={sendTo}
+                        onChange={(e) => setSendTo(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                    >
+                        <option value="internal">Internal Team Only</option>
+                        <option value="external">Internal + External (Shopline)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Choose which team receives the Slack notification</p>
                 </div>
 
                 {/* Generate Button */}
@@ -352,12 +381,21 @@ export default function Reports() {
                                             {histReport.project_count}
                                         </td>
                                         <td className="p-3 text-right">
-                                            <button
-                                                onClick={() => handleViewHistoryReport(histReport.report_id)}
-                                                className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
-                                            >
-                                                View
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleViewHistoryReport(histReport.report_id)}
+                                                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                                                >
+                                                    View
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteReport(histReport.report_id)}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                                                    title="Delete Report"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

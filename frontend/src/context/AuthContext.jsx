@@ -114,6 +114,28 @@ export function AuthProvider({ children }) {
         return hasRole('superadmin');
     };
 
+    // Project access filtering based on RLS rules
+    const canAccessProject = (project) => {
+        if (!user || !project) return false;
+
+        // Superadmin and internal team see everything
+        if (user.role === 'superadmin' || user.role === 'internal') return true;
+        if (user.email?.includes('@flyrank.com') || user.email?.includes('@powercommerce.com')) return true;
+
+        // Shopline users see external channels and partnerships only
+        if (user.email?.includes('@shopline.com')) {
+            return project.channel_id_external !== null || project.is_partnership === true;
+        }
+
+        // Merchants see only assigned projects
+        if (user.role === 'merchant') {
+            return user.assigned_projects?.includes(project.id);
+        }
+
+        return false;
+    };
+
+
     const value = {
         user,
         loading,
@@ -127,7 +149,8 @@ export function AuthProvider({ children }) {
         canViewInternalChannel,
         canEditProject,
         canAccessSettings,
-        canManageUsers
+        canManageUsers,
+        canAccessProject
     };
 
     return (

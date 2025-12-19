@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext.jsx';
 import { useProjects } from '../context/ProjectsContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import TerminalLoader from '../components/ui/TerminalLoader.jsx';
 import {
   Plus, AlertCircle, ArrowRight, ExternalLink, Save, X,
@@ -12,6 +13,7 @@ import { BLOCKER_OPTS, parseBlocker } from '../utils/constants';
 
 export default function PMStation() {
   const { projects, loading, fetchProjects, updateLocalProject } = useProjects();
+  const { canAccessProject } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [newClientOwner, setNewClientOwner] = useState("");
@@ -43,11 +45,14 @@ export default function PMStation() {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  // Get unique PMs and Devs for filter dropdowns
-  const uniquePMs = ['all', ...new Set(projects.map(p => p.owner).filter(Boolean))];
-  const uniqueDevs = ['all', ...new Set(projects.map(p => p.developer).filter(Boolean))];
+  // Apply access control first (RLS-based filtering)
+  const accessibleProjects = projects.filter(p => canAccessProject(p));
 
-  const activeProjects = projects.filter(p => p.category !== 'Launched');
+  // Get unique PMs and Devs for filter dropdowns
+  const uniquePMs = ['all', ...new Set(accessibleProjects.map(p => p.owner).filter(Boolean))];
+  const uniqueDevs = ['all', ...new Set(accessibleProjects.map(p => p.developer).filter(Boolean))];
+
+  const activeProjects = accessibleProjects.filter(p => p.category !== 'Launched');
 
   const sortProjects = (projs) => {
     return [...projs].sort((a, b) => {

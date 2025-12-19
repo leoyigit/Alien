@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { useProjects } from '../context/ProjectsContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import TerminalLoader from '../components/ui/TerminalLoader.jsx';
 import AnimatedCounter from '../components/ui/AnimatedCounter.jsx';
 import { MessageSquare, Hash, Clock, RefreshCw, ClipboardList, ArrowRight, ExternalLink, Loader, Activity, User, ChevronDown, Search, X, Filter } from 'lucide-react';
@@ -11,6 +12,7 @@ import { CHECKLIST_GROUPS, ALL_CHECKLIST_ITEMS, BLOCKER_OPTS, parseBlocker } fro
 export default function Projects() {
   const { projects, loading, fetchProjects } = useProjects();
   const { showToast } = useToast();
+  const { canAccessProject } = useAuth();
   const [activeFilter, setActiveFilter] = useState('All');
   const [syncing, setSyncing] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -28,14 +30,17 @@ export default function Projects() {
     setRefreshing(false);
   };
 
+  // Apply access control first (RLS-based filtering)
+  const accessibleProjects = projects.filter(p => canAccessProject(p));
+
   // Get unique PMs and Devs for filter dropdowns
-  const uniquePMs = ['all', ...new Set(projects.map(p => p.owner).filter(Boolean))];
-  const uniqueDevs = ['all', ...new Set(projects.map(p => p.developer).filter(Boolean))];
+  const uniquePMs = ['all', ...new Set(accessibleProjects.map(p => p.owner).filter(Boolean))];
+  const uniqueDevs = ['all', ...new Set(accessibleProjects.map(p => p.developer).filter(Boolean))];
 
   // Apply all filters
   let filteredProjects = activeFilter === 'All'
-    ? projects
-    : projects.filter(p => p.category === activeFilter);
+    ? accessibleProjects
+    : accessibleProjects.filter(p => p.category === activeFilter);
 
   // Apply search
   if (searchTerm) {
