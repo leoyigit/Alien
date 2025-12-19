@@ -9,6 +9,9 @@ from app.core.supabase import db
 import openai
 import json
 import re
+import random
+import string
+import traceback
 from datetime import datetime, timedelta
 
 reports_api = Blueprint('reports_api', __name__)
@@ -23,6 +26,27 @@ def get_openai_client():
     except:
         pass
     return None
+
+
+def generate_report_id():
+    """Generate a unique 4-character alphanumeric report ID."""
+    max_attempts = 10
+    for _ in range(max_attempts):
+        # Generate random 4-char ID (uppercase letters + digits)
+        report_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        
+        # Check if it already exists (only if table exists)
+        try:
+            result = db.table("report_history").select("id").eq("report_id", report_id).execute()
+            if not result.data:
+                return report_id
+        except Exception as e:
+            # Table doesn't exist yet - just return the ID
+            print(f"[REPORTS] Note: report_history table not found, skipping uniqueness check: {e}")
+            return report_id
+    
+    # Fallback to 6-char if collision (very unlikely)
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
 
 def get_project_data():
@@ -96,13 +120,14 @@ def generate_report():
             "Stuck / On Hold": sum(1 for p in all_projects if p.get('category') == 'Stuck / On Hold'),
             "Launched": sum(1 for p in all_projects if p.get('category') == 'Launched')
         }
+        total_count = sum(all_counts.values())
         
         context = build_detailed_pm_context(projects)
         system_prompt = f"""You are an expert PM lead generating a "PM Status Report".
 The report must follow this EXACT structure:
 
 # PM Status Report
-## {all_counts['New / In Progress']} New, {all_counts['Almost Ready']} Almost Ready, {all_counts['Ready']} Ready, {all_counts['Stuck / On Hold']} Stuck, {all_counts['Launched']} Launched
+## {all_counts['New / In Progress']} New, {all_counts['Almost Ready']} Almost Ready, {all_counts['Ready']} Ready, {all_counts['Stuck / On Hold']} Stuck, {all_counts['Launched']} Launched (Total: {total_count})
 Report created at: {current_time}
 
 NOTE: This report focuses on ACTIVE projects only (excludes Launched projects from details).
@@ -162,10 +187,35 @@ Be brief but informative. Focus on actionable insights."""
         report_content = response.choices[0].message.content
         print(f"[REPORTS] Successfully generated report ({len(report_content)} chars)")
         
+        # Generate unique report ID
+        report_id = generate_report_id()
+        generated_at = datetime.now().isoformat()
+        
+        # Save report to database
+        try:
+            db.table("report_history").insert({
+                "report_id": report_id,
+                "report_type": report_type,
+                "content": report_content,
+                "project_count": len(projects),
+                "generated_by": g.user['id'],
+                "generated_at": generated_at,
+                "metadata": {
+                    "project_ids": project_ids if project_ids else [],
+                    "total_projects": len(all_projects),
+                    "active_projects": len(projects)
+                }
+            }).execute()
+            print(f"[REPORTS] Saved report to database with ID: {report_id}")
+        except Exception as db_error:
+            print(f"[REPORTS] Warning: Failed to save report to database: {db_error}")
+            # Continue anyway - don't fail the request if DB save fails
+        
         return jsonify({
             "success": True,
+            "report_id": report_id,
             "report_type": report_type,
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": generated_at,
             "project_count": len(projects),
             "content": report_content
         })
@@ -213,6 +263,7 @@ def send_report_to_slack():
     """Send a generated report to Slack."""
     from slack_sdk import WebClient
     from app.core.config import settings
+    from dateutil import parser as date_parser
     
     data = request.json
     content = data.get('content')
@@ -224,22 +275,86 @@ def send_report_to_slack():
     try:
         slack_client = WebClient(token=settings.SLACK_BOT_TOKEN)
         
-        # Convert Markdown-ish report to Slack mrkdwn
-        # Slack doesn't support # headers, so we use bold
+        # Convert Markdown to Slack mrkdwn format
         s_content = content
-        s_content = re.sub(r'^# (.*)$', r'*\1*', s_content, flags=re.MULTILINE)
-        s_content = re.sub(r'^## (.*)$', r'*\1*', s_content, flags=re.MULTILINE)
+        
+        # Remove the main title (# PM Status Report) since we show it in the header
+        s_content = re.sub(r'^# .*Report.*$', '', s_content, flags=re.MULTILINE)
+        
+        # Convert headers (Slack doesn't support headers, use bold + newlines)
+        # Skip # headers since we removed the main one
+        s_content = re.sub(r'^## (.*)$', r'\n*\1*', s_content, flags=re.MULTILINE)
         s_content = re.sub(r'^### (.*)$', r'_\1_', s_content, flags=re.MULTILINE)
+        s_content = re.sub(r'^#### (.*)$', r'`\1`', s_content, flags=re.MULTILINE)
+        
+        # Convert bold: markdown **text** to Slack *text*
+        s_content = re.sub(r'\*\*([^*]+)\*\*', r'*\1*', s_content)
+        
+        # Convert italic: markdown *text* to Slack _text_ (careful with order!)
+        # This needs to happen after bold conversion
+        
+        # Format timestamps: Convert ISO format to human-readable
+        # Match patterns like: 2025-12-17T12:59:34.473299+00:00
+        def format_timestamp(match):
+            try:
+                timestamp_str = match.group(1)
+                dt = date_parser.parse(timestamp_str)
+                return dt.strftime('%b %d, %Y at %I:%M %p')
+            except:
+                return match.group(1)
+        
+        s_content = re.sub(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:\+\d{2}:\d{2})?)', format_timestamp, s_content)
+        
+        # Also format date-only patterns like 2025-12-17
+        def format_date(match):
+            try:
+                date_str = match.group(1)
+                dt = datetime.strptime(date_str, '%Y-%m-%d')
+                return dt.strftime('%b %d, %Y')
+            except:
+                return match.group(1)
+        
+        s_content = re.sub(r'(\d{4}-\d{2}-\d{2})(?!T)', format_date, s_content)
+        
+        # Add color coding for project categories using emojis
+        # New / In Progress = 🔵 (blue)
+        # Almost Ready = 🟡 (yellow)  
+        # Ready = 🟢 (green)
+        # Stuck / On Hold = 🔴 (red)
+        # Launched = 🟣 (purple)
+        s_content = re.sub(r'\*\*New / In Progress\*\*', '🔵 *New / In Progress*', s_content)
+        s_content = re.sub(r'\*\*Almost Ready\*\*', '🟡 *Almost Ready*', s_content)
+        s_content = re.sub(r'\*\*Ready\*\*', '🟢 *Ready*', s_content)
+        s_content = re.sub(r'\*\*Stuck / On Hold\*\*', '🔴 *Stuck / On Hold*', s_content)
+        s_content = re.sub(r'\*\*Launched\*\*', '🟣 *Launched*', s_content)
+        
+        # Also add colors to category mentions in project lines
+        s_content = re.sub(r'STAGE: New / In Progress', '🔵 STAGE: New / In Progress', s_content)
+        s_content = re.sub(r'STAGE: Almost Ready', '🟡 STAGE: Almost Ready', s_content)
+        s_content = re.sub(r'STAGE: Ready', '🟢 STAGE: Ready', s_content)
+        s_content = re.sub(r'STAGE: Stuck / On Hold', '🔴 STAGE: Stuck / On Hold', s_content)
+        s_content = re.sub(r'STAGE: Launched', '🟣 STAGE: Launched', s_content)
+        
+        # Remove "Report created at:" line since we show it in the header
+        s_content = re.sub(r'Report created at:.*?\n', '', s_content)
         
         # Split into chunks if too long for a single block
         chunks = [s_content[i:i+2900] for i in range(0, len(s_content), 2900)]
+        
+        # Get better report type name
+        report_type_names = {
+            'pm_status': 'PM Status Report',
+            'migration_tracker': 'Migration Progress Report',
+            'communication': 'Communication Summary'
+        }
+        report_title = report_type_names.get(report_type, report_type)
         
         blocks = [
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"🚀 *{report_type} Update*\nGenerated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    "text": f"📊 *{report_title}*\nGenerated: {datetime.now().strftime('%b %d, %Y at %I:%M %p')}"
                 }
             },
             {"type": "divider"}
@@ -262,6 +377,8 @@ def send_report_to_slack():
         return jsonify({"success": True})
     except Exception as e:
         print(f"Slack Send Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": f"Failed to send to Slack: {str(e)}"}), 500
 
 
@@ -372,3 +489,176 @@ def get_report_types():
             "icon": "💬"
         }
     ])
+
+
+@reports_api.route('/history', methods=['GET'])
+@require_auth
+@require_role('superadmin', 'internal')
+def get_report_history():
+    """Get last 10 generated reports."""
+    try:
+        result = db.table("report_history")\
+            .select("id, report_id, report_type, generated_at, project_count, generated_by")\
+            .order("generated_at", desc=True)\
+            .limit(10)\
+            .execute()
+        
+        # Fetch user names for generated_by
+        reports = result.data if result.data else []
+        
+        # Get unique user IDs
+        user_ids = list(set([r['generated_by'] for r in reports if r.get('generated_by')]))
+        
+        # Fetch user names
+        user_map = {}
+        if user_ids:
+            users_result = db.table("portal_users")\
+                .select("id, display_name, email")\
+                .in_("id", user_ids)\
+                .execute()
+            
+            for user in users_result.data:
+                user_map[user['id']] = user.get('display_name') or user.get('email')
+        
+        # Add user names to reports
+        for report in reports:
+            if report.get('generated_by'):
+                report['generated_by_name'] = user_map.get(report['generated_by'], 'Unknown')
+        
+        return jsonify(reports)
+    except Exception as e:
+        print(f"[REPORTS] Error fetching history: {e}")
+        # If table doesn't exist, return empty array instead of error
+        if "report_history" in str(e) and "does not exist" in str(e).lower():
+            print("[REPORTS] Note: report_history table not found. Run migration to enable history.")
+            return jsonify([])
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@reports_api.route('/<report_id>', methods=['GET'])
+@require_auth
+@require_role('superadmin', 'internal')
+def get_report_by_id(report_id):
+    """Get a specific report by its ID."""
+    try:
+        result = db.table("report_history")\
+            .select("*")\
+            .eq("report_id", report_id.upper())\
+            .execute()
+        
+        if not result.data:
+            return jsonify({"error": "Report not found"}), 404
+        
+        report = result.data[0]
+        
+        # Fetch user name
+        if report.get('generated_by'):
+            user_result = db.table("portal_users")\
+                .select("display_name, email")\
+                .eq("id", report['generated_by'])\
+                .execute()
+            
+            if user_result.data:
+                user = user_result.data[0]
+                report['generated_by_name'] = user.get('display_name') or user.get('email')
+        
+        return jsonify(report)
+    except Exception as e:
+        print(f"[REPORTS] Error fetching report {report_id}: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@reports_api.route('/compare', methods=['POST'])
+@require_auth
+@require_role('superadmin', 'internal')
+def compare_reports():
+    """Compare two reports using AI."""
+    data = request.json
+    report_id_1 = data.get('report_id_1', '').upper()
+    report_id_2 = data.get('report_id_2', '').upper()
+    
+    if not report_id_1 or not report_id_2:
+        return jsonify({"error": "Both report_id_1 and report_id_2 are required"}), 400
+    
+    try:
+        # Fetch both reports
+        result1 = db.table("report_history")\
+            .select("*")\
+            .eq("report_id", report_id_1)\
+            .execute()
+        
+        result2 = db.table("report_history")\
+            .select("*")\
+            .eq("report_id", report_id_2)\
+            .execute()
+        
+        if not result1.data:
+            return jsonify({"error": f"Report {report_id_1} not found"}), 404
+        
+        if not result2.data:
+            return jsonify({"error": f"Report {report_id_2} not found"}), 404
+        
+        report1 = result1.data[0]
+        report2 = result2.data[0]
+        
+        # Get OpenAI client
+        client = get_openai_client()
+        if not client:
+            return jsonify({"error": "OpenAI API key not configured"}), 400
+        
+        # Generate comparison using OpenAI
+        comparison_prompt = f"""You are analyzing two project status reports. Compare them and provide insights.
+
+Report 1 (ID: {report_id_1}, Date: {report1['generated_at']}):
+{report1['content']}
+
+---
+
+Report 2 (ID: {report_id_2}, Date: {report2['generated_at']}):
+{report2['content']}
+
+---
+
+Please provide a comprehensive comparison including:
+1. **Key Changes**: What has changed between the two reports?
+2. **Progress**: Which projects have made progress? Which are stuck?
+3. **New Issues**: Any new blockers or concerns?
+4. **Resolved Issues**: What problems were resolved?
+5. **Recommendations**: What should the team focus on?
+
+Be specific, data-driven, and actionable."""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert project manager analyzing status reports."},
+                {"role": "user", "content": comparison_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=2000
+        )
+        
+        comparison = response.choices[0].message.content
+        
+        return jsonify({
+            "success": True,
+            "report_1": {
+                "id": report_id_1,
+                "date": report1['generated_at'],
+                "type": report1['report_type']
+            },
+            "report_2": {
+                "id": report_id_2,
+                "date": report2['generated_at'],
+                "type": report2['report_type']
+            },
+            "comparison": comparison
+        })
+        
+    except Exception as e:
+        print(f"[REPORTS] Error comparing reports: {e}")
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to compare reports: {str(e)}"}), 500
+

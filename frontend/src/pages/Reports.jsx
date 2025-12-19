@@ -5,18 +5,23 @@ import {
     FileText, Loader, AlertCircle, RefreshCw, Download, Copy, Check,
     ClipboardList, BarChart3, MessageSquare, Sparkles, Calendar
 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export default function Reports() {
-    const { canEditProject } = useAuth();
+    const { canEditProject, user } = useAuth();
     const [reportTypes, setReportTypes] = useState([]);
     const [selectedType, setSelectedType] = useState(null);
     const [generating, setGenerating] = useState(false);
     const [report, setReport] = useState(null);
     const [error, setError] = useState(null);
     const [copied, setCopied] = useState(false);
+    const [reportHistory, setReportHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [selectedHistoryReport, setSelectedHistoryReport] = useState(null);
 
     useEffect(() => {
         fetchReportTypes();
+        fetchReportHistory();
     }, []);
 
     const fetchReportTypes = async () => {
@@ -28,6 +33,18 @@ export default function Reports() {
             }
         } catch (e) {
             console.error('Failed to fetch report types:', e);
+        }
+    };
+
+    const fetchReportHistory = async () => {
+        setLoadingHistory(true);
+        try {
+            const res = await api.get('/reports/history');
+            setReportHistory(res.data || []);
+        } catch (e) {
+            console.error('Failed to fetch report history:', e);
+        } finally {
+            setLoadingHistory(false);
         }
     };
 
@@ -43,6 +60,8 @@ export default function Reports() {
                 report_type: selectedType
             });
             setReport(res.data);
+            // Refresh history after generating new report
+            fetchReportHistory();
         } catch (e) {
             setError(e.response?.data?.error || 'Failed to generate report');
         } finally {
@@ -52,6 +71,8 @@ export default function Reports() {
 
     const [sendingSlack, setSendingSlack] = useState(false);
 
+    const { showToast } = useToast();
+
     const handleSendToSlack = async () => {
         if (!report?.content) return;
         setSendingSlack(true);
@@ -60,9 +81,9 @@ export default function Reports() {
                 content: report.content,
                 report_type: report.report_type
             });
-            alert('Report sent to Slack channel #operations!');
+            showToast('Report sent to Slack channel #operations!', 'success');
         } catch (e) {
-            alert(e.response?.data?.error || 'Failed to send to Slack');
+            showToast(e.response?.data?.error || 'Failed to send to Slack', 'error');
         } finally {
             setSendingSlack(false);
         }
@@ -73,6 +94,22 @@ export default function Reports() {
         await navigator.clipboard.writeText(report.content);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleViewHistoryReport = async (reportId) => {
+        try {
+            const res = await api.get(`/reports/${reportId}`);
+            setSelectedHistoryReport(res.data);
+        } catch (e) {
+            console.error('Error loading report:', e);
+            const errorMsg = e.response?.data?.error || 'Failed to load report. Make sure the database migration is complete.';
+            showToast(errorMsg, 'error');
+        }
+    };
+
+    const handleCopyReportId = async (reportId) => {
+        await navigator.clipboard.writeText(reportId);
+        showToast(`Report ID ${reportId} copied!`, 'success');
     };
 
     const getTypeIcon = (typeId) => {
@@ -177,6 +214,21 @@ export default function Reports() {
                                     {new Date(report.generated_at).toLocaleString()}
                                 </span>
                                 <span>{report.project_count} projects</span>
+                                {report.report_id && (
+                                    <button
+                                        onClick={() => handleCopyReportId(report.report_id)}
+                                        className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded font-mono text-xs font-bold hover:bg-purple-200 transition"
+                                        title="Click to copy Report ID"
+                                    >
+                                        ID: {report.report_id}
+                                        <Copy size={12} />
+                                    </button>
+                                )}
+                                {user && (
+                                    <span className="text-gray-400">
+                                        Created by: <span className="text-gray-600 font-medium">{user.display_name || user.email}</span>
+                                    </span>
+                                )}
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -244,6 +296,137 @@ export default function Reports() {
                     </div>
                     <h3 className="text-lg font-bold text-gray-700 mb-2">No Report Generated</h3>
                     <p className="text-gray-500">Select a report type above and click "Generate Report"</p>
+                </div>
+            )}
+
+            {/* Report History Section */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 mt-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">📚 Report History</h3>
+
+                {loadingHistory ? (
+                    <div className="text-center py-8 text-gray-500">
+                        <Loader size={24} className="animate-spin mx-auto mb-2" />
+                        Loading history...
+                    </div>
+                ) : reportHistory.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                        No reports generated yet
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 text-gray-500 text-sm">
+                                <tr>
+                                    <th className="p-3 rounded-tl-lg">Report ID</th>
+                                    <th className="p-3">Type</th>
+                                    <th className="p-3">Generated</th>
+                                    <th className="p-3">Projects</th>
+                                    <th className="p-3 rounded-tr-lg text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {reportHistory.map((histReport) => (
+                                    <tr key={histReport.id} className="hover:bg-gray-50 transition">
+                                        <td className="p-3">
+                                            <button
+                                                onClick={() => handleCopyReportId(histReport.report_id)}
+                                                className="font-mono font-bold text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                                            >
+                                                {histReport.report_id}
+                                                <Copy size={12} />
+                                            </button>
+                                        </td>
+                                        <td className="p-3">
+                                            <span className="text-sm">
+                                                {reportTypes.find(t => t.id === histReport.report_type)?.icon || '📄'}
+                                                {' '}
+                                                {reportTypes.find(t => t.id === histReport.report_type)?.name || histReport.report_type}
+                                            </span>
+                                        </td>
+                                        <td className="p-3 text-sm text-gray-600">
+                                            {new Date(histReport.generated_at).toLocaleDateString()}
+                                            {' '}
+                                            {new Date(histReport.generated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </td>
+                                        <td className="p-3 text-sm text-gray-600">
+                                            {histReport.project_count}
+                                        </td>
+                                        <td className="p-3 text-right">
+                                            <button
+                                                onClick={() => handleViewHistoryReport(histReport.report_id)}
+                                                className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                                            >
+                                                View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* History Report Modal */}
+            {selectedHistoryReport && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedHistoryReport(null)}>
+                    <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-lg text-gray-900">
+                                    {reportTypes.find(t => t.id === selectedHistoryReport.report_type)?.name || 'Report'}
+                                </h3>
+                                <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                                    <span className="flex items-center gap-1">
+                                        <Calendar size={14} />
+                                        {new Date(selectedHistoryReport.generated_at).toLocaleString()}
+                                    </span>
+                                    <span>{selectedHistoryReport.project_count} projects</span>
+                                    <button
+                                        onClick={() => handleCopyReportId(selectedHistoryReport.report_id)}
+                                        className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded font-mono text-xs font-bold hover:bg-purple-200 transition"
+                                    >
+                                        ID: {selectedHistoryReport.report_id}
+                                        <Copy size={12} />
+                                    </button>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedHistoryReport(null)}
+                                className="p-2 hover:bg-gray-200 rounded-lg transition"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                            <div className="prose prose-sm max-w-none">
+                                {selectedHistoryReport.content.split('\n').map((line, i) => {
+                                    if (line.startsWith('# ')) {
+                                        return <h1 key={i} className="text-2xl font-black text-gray-900 mt-6 mb-4">{line.slice(2)}</h1>;
+                                    }
+                                    if (line.startsWith('## ')) {
+                                        return <h2 key={i} className="text-xl font-bold text-gray-800 mt-5 mb-3 border-b pb-2">{line.slice(3)}</h2>;
+                                    }
+                                    if (line.startsWith('### ')) {
+                                        return <h3 key={i} className="text-lg font-bold text-gray-700 mt-4 mb-2">{line.slice(4)}</h3>;
+                                    }
+                                    if (line.startsWith('- ') || line.startsWith('* ')) {
+                                        return <li key={i} className="text-gray-600 ml-4">{line.slice(2)}</li>;
+                                    }
+                                    if (line.startsWith('**') && line.endsWith('**')) {
+                                        return <p key={i} className="font-bold text-gray-800 my-2">{line.slice(2, -2)}</p>;
+                                    }
+                                    if (line.trim() === '') {
+                                        return <br key={i} />;
+                                    }
+                                    return <p key={i} className="text-gray-600 my-1">{line}</p>;
+                                })}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
