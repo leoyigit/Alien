@@ -162,13 +162,48 @@ Add specific suggestions for the team.
 Be professional, detailed, and highly readable."""
 
     elif report_type == 'migration_tracker':
+        # Calculate counts for migration stages
+        migration_counts = {
+            "New / In Progress": sum(1 for p in projects if p.get('category') == 'New / In Progress'),
+            "Almost Ready": sum(1 for p in projects if p.get('category') == 'Almost Ready'),
+            "Ready": sum(1 for p in projects if p.get('category') == 'Ready'),
+            "Stuck / On Hold": sum(1 for p in projects if p.get('category') == 'Stuck / On Hold'),
+        }
+        total_migration = sum(migration_counts.values())
+        
         context = build_migration_context(projects)
-        system_prompt = """You are an executive report generator for a migration project team.
-Generate a Migration Tracker Report showing progress on each project.
-Format: Table-like summary with progress percentages.
-Include: Completion %, current blockers, estimated launch date.
-Group by stage (New/In Progress, Almost Ready, Stuck).
-Highlight projects needing attention. Be data-driven and concise."""
+        system_prompt = f"""You are an expert migration project lead generating a "Migration Progress Report".
+The report must follow this EXACT structure (matching PM Status Report style):
+
+# Migration Progress Report
+Report created at: {current_time}
+
+Group projects by their migration stage. For EACH category, show:
+1. Category header with emoji and count (e.g., "🔵 NEW / IN PROGRESS ({migration_counts['New / In Progress']})")
+2. List each project with ALL details in this format:
+
+Project: [Project Name]
+- Migration Status: [Progress description]
+- Update Time: [last_updated_at in format: Dec 17, 2025 22:54:03]
+- Blockers: [blocker or "None"]  
+- Developer & PM: [developer] / [owner]
+- Launch Date: [launch_date_public]
+- URLs: [live_url], [shopify_url]
+
+3. Add a blank line between projects for readability
+
+Categories to include:
+- 🔵 NEW / IN PROGRESS ({migration_counts['New / In Progress']})
+- 🟡 ALMOST READY ({migration_counts['Almost Ready']})
+- 🟢 READY ({migration_counts['Ready']})
+- 🔴 STUCK / ON HOLD ({migration_counts['Stuck / On Hold']})
+
+Final Section:
+### Overall Summary & Recommendations
+Provide migration progress overview showing total counts: {migration_counts['New / In Progress']} New, {migration_counts['Almost Ready']} Almost Ready, {migration_counts['Ready']} Ready, {migration_counts['Stuck / On Hold']} Stuck (Total: {total_migration})
+Add specific next steps and recommendations for the migration team.
+
+Be professional, detailed, and highly readable."""
 
     elif report_type == 'communication':
         context = build_communication_context(projects)
@@ -586,6 +621,24 @@ def get_report_by_id(report_id):
         return jsonify(report)
     except Exception as e:
         print(f"[REPORTS] Error fetching report {report_id}: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@reports_api.route('/history/<report_id>', methods=['DELETE'])
+@require_auth
+@require_role('superadmin', 'internal')
+def delete_report(report_id):
+    """Delete a report from history."""
+    try:
+        result = db.table("report_history")\
+            .delete()\
+            .eq("report_id", report_id.upper())\
+            .execute()
+        
+        return jsonify({"success": True, "message": "Report deleted"})
+    except Exception as e:
+        print(f"[REPORTS] Error deleting report {report_id}: {e}")
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
