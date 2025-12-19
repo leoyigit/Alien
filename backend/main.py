@@ -27,6 +27,16 @@ def create_app():
 
 app = create_app()
 
+# Add a health check endpoint to verify deployment
+@app.route('/health')
+def health_check():
+    """Health check endpoint to verify backend is running correctly."""
+    return {
+        "status": "healthy",
+        "blueprints": [bp.name for bp in app.blueprints.values()],
+        "registered_routes": len(list(app.url_map.iter_rules()))
+    }
+
 if __name__ == "__main__":
     print("👽 Alien Portal Backend Running on http://localhost:5001")
     app.run(host="0.0.0.0", port=5001, debug=False)

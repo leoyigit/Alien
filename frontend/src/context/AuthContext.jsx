@@ -15,30 +15,89 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Check for existing session on mount
-    useEffect(() => {
-        const token = localStorage.getItem('access_token');
+    // Function to set authorization header for API requests
+    const setAuthHeader = (token) => {
         if (token) {
-            fetchCurrentUser(token);
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         } else {
-            setLoading(false);
+            delete api.defaults.headers.common['Authorization'];
         }
-    }, []);
+    };
+
+    const logout = async () => {
+        try {
+            await api.post('/auth/logout');
+        } catch (e) {
+            console.error('Logout error:', e);
+        } finally {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            setAuthHeader(null);
+            setUser(null);
+        }
+    };
+
+    const refreshToken = async () => {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (!refreshToken) {
+            console.log('No refresh token found, cannot refresh.');
+            return;
+        }
+
+        try {
+            const res = await api.post('/auth/refresh-token', { refreshToken });
+            if (res.data.success && res.data.session) {
+                const { access_token } = res.data.session;
+                localStorage.setItem('access_token', access_token);
+                setAuthHeader(access_token);
+                console.log('Access token refreshed successfully.');
+                // Optionally, re-fetch user data to ensure it's up-to-date
+                await fetchCurrentUser(access_token);
+            } else {
+                console.error('Failed to refresh token:', res.data.error);
+                logout(); // Log out if refresh fails
+            }
+        } catch (err) {
+            console.error('Token refresh failed:', err);
+            if (err.response?.status === 401) {
+                logout(); // Log out if refresh endpoint returns 401
+            }
+        }
+    };
 
     const fetchCurrentUser = async (token) => {
         try {
-            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            setAuthHeader(token);
             const res = await api.get('/auth/me');
             setUser(res.data.user);
         } catch (e) {
-            console.error('Session expired or invalid');
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            delete api.defaults.headers.common['Authorization'];
+            console.error('Session expired or invalid during fetchCurrentUser:', e);
+            logout(); // Log out if fetching current user fails
         } finally {
             setLoading(false);
         }
     };
+
+    // Check for existing session on mount and set up refresh interval
+    useEffect(() => {
+        const initializeAuth = async () => {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                await fetchCurrentUser(token);
+            } else {
+                setLoading(false);
+            }
+        };
+
+        initializeAuth();
+
+        // Set up token refresh interval (every 5 minutes)
+        const refreshInterval = setInterval(() => {
+            refreshToken();
+        }, 5 * 60 * 1000); // 5 minutes
+
+        return () => clearInterval(refreshInterval);
+    }, []);
 
     const login = async (email, password) => {
         setError(null);
