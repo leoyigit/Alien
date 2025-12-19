@@ -15,6 +15,8 @@
   --text-muted: #9ca3af;
   --border-main: #e5e7eb;
   --border-light: #f3f4f6;
+  color-scheme: light;
+  /* explicit */
 }
 
 /* Dark mode */
@@ -28,6 +30,8 @@
   --text-muted: #64748b;
   --border-main: #475569;
   --border-light: #334155;
+  color-scheme: dark;
+  /* explicit */
 }
 
 /* ============================================
@@ -35,45 +39,45 @@
    ============================================ */
 
 body {
-  background-color: var(--bg-page) !important;
+  background-color: var(--bg-page);
   color: var(--text-primary);
 }
 
 /* Dark mode - Primary bg overrides */
 .dark .bg-gray-50,
 .dark .bg-white {
-  background-color: var(--bg-card) !important;
+  background-color: var(--bg-card);
 }
 
 .dark .bg-gray-100 {
-  background-color: var(--bg-muted) !important;
+  background-color: var(--bg-muted);
 }
 
 /* Dark mode - Text overrides */
 .dark .text-gray-900,
 .dark .text-gray-800 {
-  color: var(--text-primary) !important;
+  color: var(--text-primary);
 }
 
 .dark .text-gray-700,
 .dark .text-gray-600 {
-  color: var(--text-secondary) !important;
+  color: var(--text-secondary);
 }
 
 .dark .text-gray-500,
 .dark .text-gray-400 {
-  color: var(--text-muted) !important;
+  color: var(--text-muted);
 }
 
 /* Dark mode - Border overrides */
 .dark .border-gray-200,
 .dark .border-gray-100 {
-  border-color: var(--border-main) !important;
+  border-color: var(--border-main);
 }
 
 .dark .divide-gray-100> :not([hidden])~ :not([hidden]),
 .dark .divide-gray-50> :not([hidden])~ :not([hidden]) {
-  border-color: var(--border-light) !important;
+  border-color: var(--border-light);
 }
 
 /* ============================================
@@ -82,8 +86,8 @@ body {
 
 /* Sidebar */
 .dark aside {
-  background-color: var(--bg-card) !important;
-  border-color: var(--border-main) !important;
+  background-color: var(--bg-card);
+  border-color: var(--border-main);
 }
 
 /* Cards */
@@ -97,20 +101,20 @@ body {
 .dark input,
 .dark textarea,
 .dark select {
-  background-color: var(--bg-muted) !important;
-  border-color: var(--border-main) !important;
-  color: var(--text-primary) !important;
+  background-color: var(--bg-muted);
+  border-color: var(--border-main);
+  color: var(--text-primary);
 }
 
 .dark input::placeholder,
 .dark textarea::placeholder {
-  color: var(--text-muted) !important;
+  color: var(--text-muted);
 }
 
 .dark input:focus,
 .dark textarea:focus,
 .dark select:focus {
-  border-color: #60a5fa !important;
+  border-color: #60a5fa;
 }
 
 /* Buttons */

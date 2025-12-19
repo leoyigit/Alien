@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, UserPlus, Mail, Lock, User, Loader, AlertCircle } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { LogIn, UserPlus, Mail, Lock, User, Loader, AlertCircle, Sun, Moon } from 'lucide-react';
 
 export default function Login() {
     const [mode, setMode] = useState('login'); // 'login', 'signup', 'forgot'
@@ -13,6 +14,7 @@ export default function Login() {
     const [success, setSuccess] = useState('');
 
     const { login, signup } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -62,6 +64,15 @@ export default function Login() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-black flex items-center justify-center p-4">
+            {/* Theme Toggle - Top Right */}
+            <button
+                onClick={toggleTheme}
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                className="fixed top-6 right-6 p-3 rounded-full bg-white dark:bg-gray-800 shadow-xl text-yellow-500 dark:text-blue-400 hover:scale-110 transition z-50 border border-gray-100 dark:border-gray-700"
+            >
+                {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
+            </button>
+
             <div className="w-full max-w-md">
                 {/* Logo */}
                 <div className="text-center mb-8">
@@ -69,9 +80,9 @@ export default function Login() {
                         <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-black font-black text-2xl shadow-lg">
                             A
                         </div>
-                        <span className="text-white font-black text-3xl tracking-tight">Alien Portal</span>
+                        <span className="text-black dark:text-white font-black text-3xl tracking-tight">Alien Portal</span>
                     </div>
-                    <p className="text-gray-400">Project Management & Communication Hub</p>
+                    <p className="text-gray-500 dark:text-gray-400">Project Management & Communication Hub</p>
                 </div>
 
                 {/* Login Card */}
@@ -80,13 +91,13 @@ export default function Login() {
                     <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-xl mb-6">
                         <button
                             onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${mode === 'login' || mode === 'forgot' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${mode === 'login' || mode === 'forgot' ? 'bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                         >
                             <LogIn size={16} /> Sign In
                         </button>
                         <button
                             onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${mode === 'signup' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${mode === 'signup' ? 'bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                         >
                             <UserPlus size={16} /> Sign Up
                         </button>
@@ -95,19 +106,19 @@ export default function Login() {
                     {/* Forgot Password Header */}
                     {mode === 'forgot' && (
                         <div className="mb-4">
-                            <h3 className="font-bold text-lg">Reset Password</h3>
+                            <h3 className="font-bold text-lg dark:text-white">Reset Password</h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Enter your email to receive a reset link</p>
                         </div>
                     )}
 
                     {/* Error/Success Messages */}
                     {error && (
-                        <div className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm font-medium">
+                        <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm font-medium">
                             <AlertCircle size={16} /> {error}
                         </div>
                     )}
                     {success && (
-                        <div className="flex items-center gap-2 bg-green-50 text-green-600 px-4 py-3 rounded-lg mb-4 text-sm font-medium">
+                        <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-4 py-3 rounded-lg mb-4 text-sm font-medium">
                             ✓ {success}
                         </div>
                     )}
@@ -123,7 +134,7 @@ export default function Login() {
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent outline-none transition dark:bg-gray-700 dark:text-white"
                                         placeholder="John Doe"
                                     />
                                 </div>
@@ -138,7 +149,7 @@ export default function Login() {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent outline-none transition dark:bg-gray-700 dark:text-white"
                                     placeholder="you@company.com"
                                     required
                                 />
@@ -154,7 +165,7 @@ export default function Login() {
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent outline-none transition dark:bg-gray-700 dark:text-white"
                                         placeholder="••••••••"
                                         required
                                         minLength={6}
@@ -168,7 +179,7 @@ export default function Login() {
                             <button
                                 type="button"
                                 onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
-                                className="text-sm text-blue-600 hover:underline"
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                             >
                                 Forgot your password?
                             </button>
@@ -187,7 +198,7 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-black text-white py-3.5 rounded-lg font-bold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition shadow-lg"
+                            className="w-full bg-black dark:bg-white text-white dark:text-black py-3.5 rounded-lg font-bold hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition shadow-lg"
                         >
                             {loading ? (
                                 <>

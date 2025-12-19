@@ -6,7 +6,11 @@ export default {
     ],
     darkMode: 'class', // Enable dark mode with class strategy
     theme: {
-        extend: {},
+        extend: {
+            colors: {
+                // Define semantic colors here if needed to avoid hardcoded hex in CSS
+            }
+        },
     },
     plugins: [],
 }

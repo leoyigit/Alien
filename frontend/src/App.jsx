@@ -14,6 +14,7 @@ import Reports from './pages/Reports';
 import AlienGPT from './pages/AlienGPT';
 import Partnerships from './pages/Partnerships';
 import Contacts from './pages/Contacts';
+import ThemeDebug from './pages/ThemeDebug';
 import AiChat from './components/ui/AiChat';
 
 import { ToastProvider } from './context/ToastContext';
@@ -189,6 +190,7 @@ function AppRoutes() {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={isLoggedIn ? <Navigate to="/projects" replace /> : <Login />} />
+      <Route path="/debug-theme" element={<ThemeDebug />} />
 
       {/* Protected Routes */}
       <Route path="/" element={<ProtectedRoute><AppLayout><Projects /></AppLayout></ProtectedRoute>} />
