@@ -30,8 +30,8 @@ def require_auth(f):
             if not user_response or not user_response.user:
                 return jsonify({"error": "Invalid token"}), 401
             
-            # Get user profile with role
-            profile = db.table("portal_users").select("*").eq("id", user_response.user.id).execute()
+            # Get user profile with role - Use admin_db to bypass RLS
+            profile = admin_db.table("portal_users").select("*").eq("id", user_response.user.id).execute()
             if not profile.data:
                 return jsonify({"error": "User profile not found"}), 404
             
