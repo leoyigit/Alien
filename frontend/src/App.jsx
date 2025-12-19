@@ -13,6 +13,7 @@ import SettingsPage from './pages/Settings';
 import Reports from './pages/Reports';
 import AlienGPT from './pages/AlienGPT';
 import Partnerships from './pages/Partnerships';
+import PartnershipDetails from './pages/PartnershipDetails';
 import Contacts from './pages/Contacts';
 import ThemeDebug from './pages/ThemeDebug';
 import AiChat from './components/ui/AiChat';
@@ -198,6 +199,7 @@ function AppRoutes() {
       <Route path="/projects/:id" element={<ProtectedRoute><AppLayout><ProjectDetails /></AppLayout></ProtectedRoute>} />
       <Route path="/projects/:id/logs" element={<ProtectedRoute><AppLayout><ProjectLogs /></AppLayout></ProtectedRoute>} />
       <Route path="/pm" element={<ProtectedRoute><AppLayout><PMStation /></AppLayout></ProtectedRoute>} />
+      <Route path="/partnerships/:id" element={<ProtectedRoute><AppLayout><PartnershipDetails /></AppLayout></ProtectedRoute>} />
       <Route path="/partnerships" element={<ProtectedRoute><AppLayout><Partnerships /></AppLayout></ProtectedRoute>} />
       <Route path="/scanner" element={<ProtectedRoute><AppLayout><Scanner /></AppLayout></ProtectedRoute>} />
       <Route path="/archives" element={<ProtectedRoute><AppLayout><Archives /></AppLayout></ProtectedRoute>} />

@@ -85,136 +85,142 @@ def generate_report():
     """
     Generate an AI-powered report.
     """
-    data = request.json
-    report_type = data.get('report_type', 'pm_status')
-    project_ids = data.get('project_ids', [])
-    
-    # Get OpenAI client
-    client = get_openai_client()
-    if not client:
-        return jsonify({"error": "OpenAI API key not configured. Add it in Settings."}), 400
-    
-    # Get project data
-    # Get all projects (exclude partnerships - they're not client projects)
-    all_projects = [p for p in get_project_data() if not p.get('is_partnership', False)]
-    
-    # Filter projects
-    if project_ids:
-        projects = [p for p in all_projects if p['id'] in project_ids]
-    else:
-        # Default to active projects only (exclude Launched) to match PM Station
-        # This ensures reports focus on projects that need attention
-        projects = [p for p in all_projects if p.get('category') != 'Launched']
-    
-    if not projects:
-        return jsonify({"error": "No active projects found"}), 404
-    
-    # Use CET timezone (UTC+1)
-    cet = timezone(timedelta(hours=1))
-    current_time = datetime.now(cet).strftime("%b %d, %Y %H:%M:%S")
-    
-    # Build context based on report type
-    if report_type == 'pm_status':
-        # Calculate counts for ALL projects (including Launched for context)
-        all_counts = {
-            "New / In Progress": sum(1 for p in all_projects if p.get('category') == 'New / In Progress'),
-            "Almost Ready": sum(1 for p in all_projects if p.get('category') == 'Almost Ready'),
-            "Ready": sum(1 for p in all_projects if p.get('category') == 'Ready'),
-            "Stuck / On Hold": sum(1 for p in all_projects if p.get('category') == 'Stuck / On Hold'),
-            "Launched": sum(1 for p in all_projects if p.get('category') == 'Launched')
-        }
-        total_count = sum(all_counts.values())
+    try:
+        data = request.json
+        report_type = data.get('report_type', 'pm_status')
+        project_ids = data.get('project_ids', [])
         
-        context = build_detailed_pm_context(projects)
-        system_prompt = f"""You are an expert PM lead generating a "PM Status Report".
-The report must follow this EXACT structure:
-
-# PM Status Report
-Report created at: {current_time}
-
-Group projects by their status category. For EACH category, show:
-1. Category header with emoji and count (e.g., "🔵 NEW / IN PROGRESS (5)")
-2. List each project with ALL details in this format:
-
-Project: [Project Name]
-- PM Notes: [status_detail]
-- Update Time: [last_updated_at in format: Dec 17, 2025 22:54:03]
-- Blockers: [blocker or "None"]
-- Developer & PM: [developer] / [owner]
-- Last Call / Contact Date: [last_contact_date or "N/A"]
-- URLs: [live_url], [shopify_url]
-
-3. Add a blank line between projects for readability
-
-Categories to include:
-- 🔵 NEW / IN PROGRESS ({all_counts['New / In Progress']})
-- 🟡 ALMOST READY ({all_counts['Almost Ready']})
-- 🟢 READY ({all_counts['Ready']})
-- 🔴 STUCK / ON HOLD ({all_counts['Stuck / On Hold']})
-
-Do NOT include Launched projects in details.
-
-Final Section:
-### Overall Summary & Suggestions
-Provide a high-level overview showing total counts: {all_counts['New / In Progress']} New, {all_counts['Almost Ready']} Almost Ready, {all_counts['Ready']} Ready, {all_counts['Stuck / On Hold']} Stuck, {all_counts['Launched']} Launched (Total: {total_count})
-Add specific suggestions for the team.
-
-Be professional, detailed, and highly readable."""
-
-    elif report_type == 'migration_tracker':
-        # Calculate counts for migration stages
-        migration_counts = {
-            "New / In Progress": sum(1 for p in projects if p.get('category') == 'New / In Progress'),
-            "Almost Ready": sum(1 for p in projects if p.get('category') == 'Almost Ready'),
-            "Ready": sum(1 for p in projects if p.get('category') == 'Ready'),
-            "Stuck / On Hold": sum(1 for p in projects if p.get('category') == 'Stuck / On Hold'),
-        }
-        total_migration = sum(migration_counts.values())
+        # Get OpenAI client
+        client = get_openai_client()
+        if not client:
+            return jsonify({"error": "OpenAI API key not configured. Add it in Settings."}), 400
         
-        context = build_migration_context(projects)
-        system_prompt = f"""You are an expert migration project lead generating a "Migration Progress Report".
-The report must follow this EXACT structure (matching PM Status Report style):
+        # Get project data
+        # Get all projects (exclude partnerships - they're not client projects)
+        all_projects = [p for p in get_project_data() if not p.get('is_partnership', False)]
+        
+        # Filter projects
+        if project_ids:
+            projects = [p for p in all_projects if p['id'] in project_ids]
+        else:
+            # Default to active projects only (exclude Launched) to match PM Station
+            # This ensures reports focus on projects that need attention
+            projects = [p for p in all_projects if p.get('category') != 'Launched']
+        
+        if not projects:
+            return jsonify({"error": "No active projects found"}), 404
+        
+        # Use CET timezone (UTC+1)
+        cet = timezone(timedelta(hours=1))
+        current_time = datetime.now(cet).strftime("%b %d, %Y %H:%M:%S")
+        
+        # Build context based on report type
+        if report_type == 'pm_status':
+            # Calculate counts for ALL projects (including Launched for context)
+            all_counts = {
+                "New / In Progress": sum(1 for p in all_projects if p.get('category') == 'New / In Progress'),
+                "Almost Ready": sum(1 for p in all_projects if p.get('category') == 'Almost Ready'),
+                "Ready": sum(1 for p in all_projects if p.get('category') == 'Ready'),
+                "Stuck / On Hold": sum(1 for p in all_projects if p.get('category') == 'Stuck / On Hold'),
+                "Launched": sum(1 for p in all_projects if p.get('category') == 'Launched')
+            }
+            total_count = sum(all_counts.values())
+            
+            context = build_detailed_pm_context(projects)
+            system_prompt = f"""You are an expert PM lead generating a "PM Status Report".
+    The report must follow this EXACT structure:
 
-# Migration Progress Report
-Report created at: {current_time}
+    # PM Status Report
+    Report created at: {current_time}
 
-Group projects by their migration stage. For EACH category, show:
-1. Category header with emoji and count (e.g., "🔵 NEW / IN PROGRESS ({migration_counts['New / In Progress']})")
-2. List each project with ALL details in this format:
+    Group projects by their status category. For EACH category, show:
+    1. Category header with emoji and count (e.g., "🔵 NEW / IN PROGRESS (5)")
+    2. List each project with ALL details in this format:
 
-Project: [Project Name]
-- Migration Status: [Progress description]
-- Update Time: [last_updated_at in format: Dec 17, 2025 22:54:03]
-- Blockers: [blocker or "None"]  
-- Developer & PM: [developer] / [owner]
-- Launch Date: [launch_date_public]
-- URLs: [live_url], [shopify_url]
+    Project: [Project Name]
+    - PM Notes: [status_detail]
+    - Update Time: [last_updated_at in format: Dec 17, 2025 22:54:03]
+    - Blockers: [blocker or "None"]
+    - Developer & PM: [developer] / [owner]
+    - Last Call / Contact Date: [last_contact_date or "N/A"]
+    - URLs: [live_url], [shopify_url]
 
-3. Add a blank line between projects for readability
+    3. Add a blank line between projects for readability
 
-Categories to include:
-- 🔵 NEW / IN PROGRESS ({migration_counts['New / In Progress']})
-- 🟡 ALMOST READY ({migration_counts['Almost Ready']})
-- 🟢 READY ({migration_counts['Ready']})
-- 🔴 STUCK / ON HOLD ({migration_counts['Stuck / On Hold']})
+    Categories to include:
+    - 🔵 NEW / IN PROGRESS ({all_counts['New / In Progress']})
+    - 🟡 ALMOST READY ({all_counts['Almost Ready']})
+    - 🟢 READY ({all_counts['Ready']})
+    - 🔴 STUCK / ON HOLD ({all_counts['Stuck / On Hold']})
 
-Final Section:
-### Overall Summary & Recommendations
-Provide migration progress overview showing total counts: {migration_counts['New / In Progress']} New, {migration_counts['Almost Ready']} Almost Ready, {migration_counts['Ready']} Ready, {migration_counts['Stuck / On Hold']} Stuck (Total: {total_migration})
-Add specific next steps and recommendations for the migration team.
+    Do NOT include Launched projects in details.
 
-Be professional, detailed, and highly readable."""
+    Final Section:
+    ### Overall Summary & Suggestions
+    Provide a high-level overview showing total counts: {all_counts['New / In Progress']} New, {all_counts['Almost Ready']} Almost Ready, {all_counts['Ready']} Ready, {all_counts['Stuck / On Hold']} Stuck, {all_counts['Launched']} Launched (Total: {total_count})
+    Add specific suggestions for the team.
 
-    elif report_type == 'communication':
-        context = build_communication_context(projects)
-        system_prompt = """You are an executive report generator summarizing client communications.
-Generate a Communication Summary Report.
-Include: Last contact dates, scheduled calls, recent discussion highlights.
-Flag any projects with no recent contact (>14 days).
-Be brief but informative. Focus on actionable insights."""
+    Be professional, detailed, and highly readable."""
 
-    else:
-        return jsonify({"error": f"Unknown report type: {report_type}"}), 400
+        elif report_type == 'migration_tracker':
+            # Calculate counts for migration stages
+            migration_counts = {
+                "New / In Progress": sum(1 for p in projects if p.get('category') == 'New / In Progress'),
+                "Almost Ready": sum(1 for p in projects if p.get('category') == 'Almost Ready'),
+                "Ready": sum(1 for p in projects if p.get('category') == 'Ready'),
+                "Stuck / On Hold": sum(1 for p in projects if p.get('category') == 'Stuck / On Hold'),
+            }
+            total_migration = sum(migration_counts.values())
+            
+            context = build_migration_context(projects)
+            system_prompt = f"""You are an expert migration project lead generating a "Migration Progress Report".
+    The report must follow this EXACT structure (matching PM Status Report style):
+
+    # Migration Progress Report
+    Report created at: {current_time}
+
+    Group projects by their migration stage. For EACH category, show:
+    1. Category header with emoji and count (e.g., "🔵 NEW / IN PROGRESS ({migration_counts['New / In Progress']})")
+    2. List each project with ALL details in this format:
+
+    Project: [Project Name]
+    - Migration Status: [Progress description]
+    - Update Time: [last_updated_at in format: Dec 17, 2025 22:54:03]
+    - Blockers: [blocker or "None"]  
+    - Developer & PM: [developer] / [owner]
+    - Launch Date: [launch_date_public]
+    - URLs: [live_url], [shopify_url]
+
+    3. Add a blank line between projects for readability
+
+    Categories to include:
+    - 🔵 NEW / IN PROGRESS ({migration_counts['New / In Progress']})
+    - 🟡 ALMOST READY ({migration_counts['Almost Ready']})
+    - 🟢 READY ({migration_counts['Ready']})
+    - 🔴 STUCK / ON HOLD ({migration_counts['Stuck / On Hold']})
+
+    Final Section:
+    ### Overall Summary & Recommendations
+    Provide migration progress overview showing total counts: {migration_counts['New / In Progress']} New, {migration_counts['Almost Ready']} Almost Ready, {migration_counts['Ready']} Ready, {migration_counts['Stuck / On Hold']} Stuck (Total: {total_migration})
+    Add specific next steps and recommendations for the migration team.
+
+    Be professional, detailed, and highly readable."""
+
+        elif report_type == 'communication':
+            context = build_communication_context(projects)
+            system_prompt = """You are an executive report generator summarizing client communications.
+    Generate a Communication Summary Report.
+    Include: Last contact dates, scheduled calls, recent discussion highlights.
+    Flag any projects with no recent contact (>14 days).
+    Be brief but informative. Focus on actionable insights."""
+
+        else:
+            return jsonify({"error": f"Unknown report type: {report_type}"}), 400
+            
+    except Exception as e:
+        print(f"[REPORTS] Pre-generation Error: {e}")
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to prepare report data: {str(e)}"}), 500
     
     try:
         # Generate report using OpenAI

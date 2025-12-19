@@ -136,8 +136,7 @@ export default function Partnerships() {
                                 {syncing === p.id ? "SYNCING..." : "SYNC"}
                             </button>
                             <Link
-                                to={`/projects/${p.id}`}
-                                state={{ from: '/partnerships' }}
+                                to={`/partnerships/${p.id}`}
                                 className="text-[10px] font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1 hover:underline"
                             >
                                 OPEN DETAILS <ArrowRight size={10} />

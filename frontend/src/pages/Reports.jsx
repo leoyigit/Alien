@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
     FileText, Loader, AlertCircle, RefreshCw, Download, Copy, Check,
-    ClipboardList, BarChart3, MessageSquare, Sparkles, Calendar, Trash2
+    ClipboardList, BarChart3, MessageSquare, Sparkles, Calendar, Trash2, X
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
@@ -27,7 +27,7 @@ export default function Reports() {
         fetchReportHistory();
         fetchTeamMembers();
     }, []);
-    
+
     const fetchTeamMembers = async () => {
         try {
             const res = await api.get('/settings/team');
@@ -111,7 +111,7 @@ export default function Reports() {
 
     const handleViewHistoryReport = async (reportId) => {
         try {
-            const res = await api.get(`/ reports / ${reportId} `);
+            const res = await api.get(`/reports/${reportId}`);
             setSelectedHistoryReport(res.data);
         } catch (e) {
             console.error('Error loading report:', e);
@@ -126,13 +126,15 @@ export default function Reports() {
     };
 
     const handleDeleteReport = async (reportId) => {
+        console.log("Attempting to delete report:", reportId);
         if (!confirm('Are you sure you want to delete this report?')) return;
 
         try {
-            await api.delete(`/ reports / history / ${reportId} `);
+            await api.delete(`/reports/history/${reportId}`);
             showToast('Report deleted!', 'success');
             fetchReportHistory(); // Refresh the list
         } catch (e) {
+            console.error("Delete failed:", e);
             showToast(e.response?.data?.error || 'Failed to delete report', 'error');
         }
     };
@@ -201,28 +203,26 @@ export default function Reports() {
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
                         Send Report To
                     </label>
-                    
+
                     {/* Send Method Selection */}
                     <div className="flex gap-2 mb-3">
                         <button
                             type="button"
                             onClick={() => setSendTo('channel')}
-                            className={`flex-1 px-4 py-2 rounded-lg font-medium text-sm transition ${
-                                sendTo === 'channel'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                            }`}
+                            className={`flex-1 px-4 py-2 rounded-lg font-medium text-sm transition ${sendTo === 'channel'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                }`}
                         >
                             📢 Slack Channel
                         </button>
                         <button
                             type="button"
                             onClick={() => setSendTo('user')}
-                            className={`flex-1 px-4 py-2 rounded-lg font-medium text-sm transition ${
-                                sendTo === 'user'
-                                    ? 'bg-purple-600 text-white'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                            }`}
+                            className={`flex-1 px-4 py-2 rounded-lg font-medium text-sm transition ${sendTo === 'user'
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                }`}
                         >
                             👤 Specific User
                         </button>
@@ -250,8 +250,8 @@ export default function Reports() {
                     )}
 
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {sendTo === 'channel' 
-                            ? 'Report will be sent to #operations Slack channel' 
+                        {sendTo === 'channel'
+                            ? 'Report will be sent to #operations Slack channel'
                             : 'Report will be sent as a direct message to the selected user'}
                     </p>
                 </div>

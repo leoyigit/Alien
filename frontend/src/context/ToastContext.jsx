@@ -22,7 +22,7 @@ export const ToastProvider = ({ children }) => {
 
             {/* THE NOTIFICATION UI */}
             {toast && (
-                <div className={`fixed top-5 right-5 z-[9999] flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl transform transition-all animate-in slide-in-from-top-5 duration-300 ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
+                <div className={`fixed top-5 right-5 z-[9999] flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl transform transition-all animate-in slide-in-from-top-5 duration-300 border border-gray-200 dark:border-gray-700 ${toast.type === 'error' ? 'bg-red-50 dark:bg-red-900/90 text-red-900 dark:text-red-100' : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
                     }`}>
                     {toast.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
                     <div>
