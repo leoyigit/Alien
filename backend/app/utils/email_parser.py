@@ -7,6 +7,7 @@ Extracts metadata and body from emails posted to Slack Mailbox channel.
 import re
 from datetime import datetime
 from typing import Dict, List, Optional
+from difflib import SequenceMatcher
 
 
 def parse_slack_email(message_text: str) -> Optional[Dict]:
@@ -32,6 +33,7 @@ def parse_slack_email(message_text: str) -> Optional[Dict]:
             'cc_emails': [str],
             'subject': str,
             'date': str,
+            'sent_date_iso': str,  # ISO format datetime
             'body': str,
             'is_forwarded': bool
         }
@@ -47,6 +49,7 @@ def parse_slack_email(message_text: str) -> Optional[Dict]:
             'cc_emails': [],
             'subject': '',
             'date': '',
+            'sent_date_iso': '',
             'body': '',
             'is_forwarded': False
         }
@@ -82,6 +85,7 @@ def parse_forwarded_section(lines: List[str]) -> Optional[Dict]:
         'cc_emails': [],
         'subject': '',
         'date': '',
+        'sent_date_iso': '',
         'body': ''
     }
     
@@ -97,7 +101,9 @@ def parse_forwarded_section(lines: List[str]) -> Optional[Dict]:
             result['from_email'] = email
             
         elif line.startswith('Date:'):
-            result['date'] = line.replace('Date:', '').strip()
+            date_str = line.replace('Date:', '').strip()
+            result['date'] = date_str
+            result['sent_date_iso'] = parse_email_date(date_str)
             
         elif line.startswith('Subject:'):
             result['subject'] = line.replace('Subject:', '').strip()
@@ -138,6 +144,7 @@ def parse_direct_email(lines: List[str]) -> Dict:
         'cc_emails': [],
         'subject': '',
         'date': '',
+        'sent_date_iso': '',
         'body': ''
     }
     
@@ -155,7 +162,9 @@ def parse_direct_email(lines: List[str]) -> Dict:
             result['subject'] = line.replace('Subject:', '').strip()
             
         elif line.startswith('Date:'):
-            result['date'] = line.replace('Date:', '').strip()
+            date_str = line.replace('Date:', '').strip()
+            result['date'] = date_str
+            result['sent_date_iso'] = parse_email_date(date_str)
             
         elif line.startswith('To:'):
             to_line = line.replace('To:', '').strip()
@@ -275,13 +284,78 @@ def match_project_by_domain(email: str, projects: List[Dict]) -> Optional[Dict]:
 
 def match_project_by_name(subject: str, body: str, projects: List[Dict]) -> Optional[Dict]:
     """
-    Match project by finding client name in subject or body.
+    Match project by finding client name in subject or body using fuzzy matching.
     """
     search_text = f"{subject} {body}".lower()
     
+    # First try exact match
     for project in projects:
         client_name = project.get('client_name', '').lower()
         if len(client_name) > 3 and client_name in search_text:
             return project
     
-    return None
+    # Try fuzzy matching
+    best_match = None
+    best_score = 0.0
+    
+    for project in projects:
+        client_name = project.get('client_name', '').lower()
+        if len(client_name) < 4:
+            continue
+            
+        # Check similarity with subject
+        similarity = string_similarity(client_name, subject.lower())
+        if similarity > best_score and similarity > 0.7:  # 70% threshold
+            best_score = similarity
+            best_match = project
+    
+    return best_match
+
+
+def string_similarity(a: str, b: str) -> float:
+    """
+    Calculate similarity between two strings (0.0 to 1.0).
+    Uses SequenceMatcher for fuzzy matching.
+    
+    Examples:
+        'patch party' vs 'Patch Party Club' -> 0.85
+        'mixed' vs 'Mixed Up Clothing' -> 0.6
+    """
+    return SequenceMatcher(None, a, b).ratio()
+
+
+def parse_email_date(date_str: str) -> str:
+    """
+    Parse email date string to ISO format.
+    
+    Handles formats like:
+        - 'Mon, Dec 15, 2025 at 9:39 PM'
+        - 'Mon, 15 Dec 2025 21:39:00 +0000'
+        - 'December 15, 2025 9:39 PM'
+    
+    Returns:
+        ISO format datetime string (e.g., '2025-12-15T21:39:00')
+        or empty string if parsing fails
+    """
+    if not date_str:
+        return ''
+    
+    # Common email date formats
+    formats = [
+        '%a, %b %d, %Y at %I:%M %p',  # Mon, Dec 15, 2025 at 9:39 PM
+        '%a, %d %b %Y %H:%M:%S %z',   # Mon, 15 Dec 2025 21:39:00 +0000
+        '%B %d, %Y %I:%M %p',          # December 15, 2025 9:39 PM
+        '%b %d, %Y at %I:%M %p',       # Dec 15, 2025 at 9:39 PM
+        '%Y-%m-%d %H:%M:%S',           # 2025-12-15 21:39:00
+    ]
+    
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(date_str.strip(), fmt)
+            return dt.isoformat()
+        except ValueError:
+            continue
+    
+    # If all formats fail, log and return empty
+    print(f"⚠️ Could not parse email date: {date_str}")
+    return ''

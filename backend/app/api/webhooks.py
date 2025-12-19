@@ -118,6 +118,9 @@ def handle_message(event, say):
                 
                 # 4. Store email in communication_logs
                 if matched_project:
+                    # Use extracted email date if available, otherwise use Slack timestamp
+                    email_timestamp = email_data.get('sent_date_iso') or ts
+                    
                     db.table("communication_logs").insert({
                         "project_id": matched_project["id"],
                         "content": email_data['body'],
@@ -128,12 +131,28 @@ def handle_message(event, say):
                         "slack_ts": ts,
                         "thread_ts": thread_ts,
                         "visibility": "external",
-                        "message_timestamp": ts
+                        "message_timestamp": email_timestamp,
+                        "email_sent_date": email_timestamp
                     }).execute()
                     print(f"   💾 Stored email for project: {matched_project['client_name']}")
+                    print(f"   📅 Email date: {email_data.get('date')} -> {email_timestamp}")
                 else:
-                    print(f"   ⚠️  No project match found - email not stored")
-                    # TODO: Post to internal channel for manual tagging
+                    print(f"   ⚠️  No project match found - logging for manual review")
+                    # Store in unmatched_emails table for manual assignment
+                    try:
+                        db.table("unmatched_emails").insert({
+                            "from_email": email_data['from_email'],
+                            "from_name": email_data['from_name'],
+                            "to_emails": email_data['to_emails'],
+                            "cc_emails": email_data['cc_emails'],
+                            "subject": email_data['subject'],
+                            "body": email_data['body'],
+                            "slack_ts": ts,
+                            "matched": False
+                        }).execute()
+                        print(f"   📝 Logged unmatched email: {email_data['subject']}")
+                    except Exception as log_error:
+                        print(f"   ❌ Failed to log unmatched email: {log_error}")
             else:
                 print(f"   ❌ Email parsing failed - no from_email extracted")
                 
