@@ -300,6 +300,22 @@ def bulk_map_channels():
         return jsonify({"error": str(e)}), 500
 
 
+@api.route('/unignore-channel', methods=['POST'])
+def unignore_channel():
+    """Remove a channel from the ignored list."""
+    data = request.json
+    channel_id = data.get("channel_id")
+    
+    if not channel_id:
+        return jsonify({"error": "Missing channel_id"}), 400
+    
+    try:
+        db.table("ignored_channels").delete().eq("channel_id", channel_id).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ---------------------------------------------------------
 # 📊 DASHBOARD & REPORTING
 # ---------------------------------------------------------

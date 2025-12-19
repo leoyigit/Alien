@@ -107,6 +107,17 @@ export default function Scanner() {
     }
   };
 
+  const handleUnignore = async (channelId, name) => {
+    try {
+      await api.post('/unignore-channel', { channel_id: channelId });
+      setIgnoredChannels(prev => prev.filter(c => c.channel_id !== channelId));
+      showToast(`✅ Restored #${name}`, 'success');
+      fetchChannels(); // Refresh unmapped list
+    } catch (err) {
+      showToast("Error unignoring channel", 'error');
+    }
+  };
+
   const handleBulkAction = (action) => {
     if (selectedChannels.size === 0) {
       showToast('Please select at least one channel', 'error');
@@ -405,7 +416,31 @@ export default function Scanner() {
                     )}
                     <td className="p-4">
                       <div className="flex items-center justify-end gap-2">
-                        {!ch.isIgnored ? (
+                        {ch.isIgnored ? (
+                          <>
+                            <button
+                              onClick={() => handleUnignore(ch.id, ch.name)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition"
+                            >
+                              <Check size={14} />
+                              Unignore
+                            </button>
+                            <button
+                              onClick={() => handleMapAsProject(ch.id, suggestedRole)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition"
+                            >
+                              <FolderPlus size={14} />
+                              Project
+                            </button>
+                            <button
+                              onClick={() => handleMapAsPartnership(ch.id, suggestedRole)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition"
+                            >
+                              <Handshake size={14} />
+                              Partnership
+                            </button>
+                          </>
+                        ) : (
                           <>
                             <button
                               onClick={() => handleMapAsProject(ch.id, suggestedRole)}
@@ -429,8 +464,6 @@ export default function Scanner() {
                               <X size={16} />
                             </button>
                           </>
-                        ) : (
-                          <span className="text-xs text-gray-500 italic">No actions available</span>
                         )}
                       </div>
                     </td>
