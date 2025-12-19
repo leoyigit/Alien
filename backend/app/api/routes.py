@@ -228,27 +228,17 @@ def ignore_channel():
 @api.route('/projects', methods=['GET'])
 def get_projects():
     try:
-        # 1. Fetch all projects
+        # 1. Fetch all projects (now includes comm_count_* fields from migration 004)
         projects = db.table("projects").select("*").order("client_name").execute().data
-        
-        # 2. Get all log counts in one query (grouped by project)
-        all_logs = db.table("communication_logs").select("project_id, visibility").execute().data
-        
-        # Count messages per project
-        log_counts = {}
-        for log in all_logs:
-            pid = log["project_id"]
-            vis = log.get("visibility", "internal")
-            if pid not in log_counts:
-                log_counts[pid] = {"total": 0, "internal": 0, "external": 0}
-            log_counts[pid]["total"] += 1
-            log_counts[pid][vis] += 1
         
         dashboard_data = []
         
         for p in projects:
-            pid = p["id"]
-            counts = log_counts.get(pid, {"total": 0, "internal": 0, "external": 0})
+            # Use cached counts from database (auto-updated by trigger)
+            # Fallback to 0 if migration 004 hasn't been run yet
+            internal_count = p.get("comm_count_internal", 0) or 0
+            external_count = p.get("comm_count_external", 0) or 0
+            meetings_count = p.get("comm_count_meetings", 0) or 0
             
             # Get last activity
             last_pm_time = p.get("last_updated_at")
@@ -256,9 +246,10 @@ def get_projects():
             dashboard_data.append({
                 **p,
                 "stats": {
-                    "total_messages": counts["total"],
-                    "internal_messages": counts["internal"],
-                    "external_messages": counts["external"],
+                    "total_messages": internal_count + external_count,
+                    "internal_messages": internal_count,
+                    "external_messages": external_count,
+                    "meetings": meetings_count,
                     "last_active": last_pm_time,
                     "active_source": "Report" if last_pm_time else None
                 }
@@ -269,7 +260,7 @@ def get_projects():
         print(f"Projects API Error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({\"error\": str(e)}), 500
 
 @api.route('/projects/<project_id>/update-report', methods=['POST'])
 def update_project_report(project_id):

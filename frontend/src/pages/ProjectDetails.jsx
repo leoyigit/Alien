@@ -94,30 +94,21 @@ export default function ProjectDetails() {
 
     }, [id, projects, globalLoading]);
 
-    // Fetch message counts when Communication tab loads
+    // Set message counts from cached project data
     useEffect(() => {
-        if (!id || activeTab !== 'chat') return;
+        if (!project) return;
 
-        const fetchCounts = async () => {
-            try {
-                const [internalRes, externalRes, emailsRes] = await Promise.all([
-                    api.get(`/projects/${id}/logs`, { params: { visibility: 'internal' } }),
-                    api.get(`/projects/${id}/logs`, { params: { visibility: 'external' } }),
-                    api.get(`/projects/${id}/emails`)
-                ]);
+        // Use cached counts from database (updated by trigger)
+        const internal = project.comm_count_internal || 0;
+        const external = project.comm_count_external || 0;
+        const emails = external; // Emails are counted as external messages
 
-                setMessageCounts({
-                    internal: internalRes.data?.length || 0,
-                    external: externalRes.data?.length || 0,
-                    emails: emailsRes.data?.length || 0
-                });
-            } catch (e) {
-                console.error('Failed to load counts:', e);
-            }
-        };
-
-        fetchCounts();
-    }, [id, activeTab]);
+        setMessageCounts({
+            internal,
+            external,
+            emails
+        });
+    }, [project]);
 
     // Fetch messages when visibility tab changes
     useEffect(() => {
