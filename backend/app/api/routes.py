@@ -175,9 +175,10 @@ def map_channel():
     data = request.json
     c_id = data.get("channel_id")
     client = data.get("client_name")
-    role = data.get("role") 
+    role = data.get("role")
+    is_partnership = data.get("is_partnership", False)  # New: partnership flag
     
-    print(f"📡 map_channel called: channel={c_id}, client={client}, role={role}")
+    print(f"📡 map_channel called: channel={c_id}, client={client}, role={role}, partnership={is_partnership}")
     
     if not c_id or not client or not role:
         return jsonify({"error": "Missing fields"}), 400
@@ -190,17 +191,21 @@ def map_channel():
         print(f"   Project lookup result: {len(res.data)} found")
         
         if not res.data:
-            # Create new project
-            print(f"   Creating new project: {client}")
+            # Create new project/partnership
+            print(f"   Creating new {'partnership' if is_partnership else 'project'}: {client}")
             db.table("projects").insert({
                 "client_name": client,
                 field_to_update: c_id,
-                "status_overview": "Initialized via Scanner"
+                "status_overview": "Initialized via Scanner",
+                "is_partnership": is_partnership
             }).execute()
         else:
             # Update existing
-            print(f"   Updating existing project: {client} -> {field_to_update}={c_id}")
-            db.table("projects").update({field_to_update: c_id}).eq("client_name", client).execute()
+            print(f"   Updating existing: {client} -> {field_to_update}={c_id}, is_partnership={is_partnership}")
+            db.table("projects").update({
+                field_to_update: c_id,
+                "is_partnership": is_partnership
+            }).eq("client_name", client).execute()
             
         return jsonify({"success": True, "message": f"Mapped {c_id} to {client}"})
     except Exception as e:
@@ -229,7 +234,8 @@ def ignore_channel():
 def get_projects():
     try:
         # 1. Fetch all projects (now includes comm_count_* fields from migration 004)
-        projects = db.table("projects").select("*").order("client_name").execute().data
+        # Exclude partnerships - they have their own page
+        projects = db.table("projects").select("*").eq("is_partnership", False).order("client_name").execute().data
         
         dashboard_data = []
         
@@ -261,6 +267,44 @@ def get_projects():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+@api.route('/partnerships', methods=['GET'])
+def get_partnerships():
+    """Get partnership channels (internal/superadmin only)"""
+    try:
+        # Fetch only partnership channels
+        partnerships = db.table("projects").select("*").eq("is_partnership", True).order("client_name").execute().data
+        
+        dashboard_data = []
+        
+        for p in partnerships:
+            # Use cached counts from database
+            internal_count = p.get("comm_count_internal", 0) or 0
+            external_count = p.get("comm_count_external", 0) or 0
+            meetings_count = p.get("comm_count_meetings", 0) or 0
+            
+            # Get last activity
+            last_pm_time = p.get("last_updated_at")
+            
+            dashboard_data.append({
+                **p,
+                "stats": {
+                    "total_messages": internal_count + external_count,
+                    "internal_messages": internal_count,
+                    "external_messages": external_count,
+                    "meetings": meetings_count,
+                    "last_active": last_pm_time,
+                    "active_source": "Report" if last_pm_time else None
+                }
+            })
+
+        return jsonify(dashboard_data)
+    except Exception as e:
+        print(f"Partnerships API Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 
 @api.route('/projects/<project_id>/update-report', methods=['POST'])
 def update_project_report(project_id):

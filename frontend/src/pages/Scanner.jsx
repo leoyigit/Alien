@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { RefreshCw, ArrowRight, Check, X } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export default function Scanner() {
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [partnershipFlags, setPartnershipFlags] = useState({}); // Track partnership checkbox per channel
+  const { showToast } = useToast();
 
   // 1. Fetch channels from Python
   const fetchChannels = async () => {
@@ -26,18 +29,20 @@ export default function Scanner() {
     fetchChannels();
   }, []);
 
-  // 2. Handle Mapping Action
   const handleMap = async (channelId, client, role) => {
     try {
+      const isPartnership = partnershipFlags[channelId] || false;
       await api.post('/map-channel', {
         channel_id: channelId,
         client_name: client,
-        role: role
+        role: role,
+        is_partnership: isPartnership
       });
       // Remove from list locally for instant feedback
       setChannels(prev => prev.filter(c => c.id !== channelId));
+      showToast(`Mapped channel to ${client}${isPartnership ? ' (Partnership)' : ''}`, 'success');
     } catch (err) {
-      alert("Error mapping channel: " + err.message);
+      showToast("Error mapping channel: " + err.message, 'error');
     }
   };
 
@@ -45,8 +50,9 @@ export default function Scanner() {
     try {
       await api.post('/ignore-channel', { channel_id: channelId, channel_name: name });
       setChannels(prev => prev.filter(c => c.id !== channelId));
+      showToast(`Ignored channel #${name}`, 'success');
     } catch (err) {
-      alert("Error ignoring channel");
+      showToast("Error ignoring channel", 'error');
     }
   };
 
@@ -57,8 +63,8 @@ export default function Scanner() {
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">📡 Channel Scanner</h1>
-        <button 
-          onClick={fetchChannels} 
+        <button
+          onClick={fetchChannels}
           className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
         >
           <RefreshCw size={16} /> Rescan
@@ -85,11 +91,20 @@ export default function Scanner() {
                   <td className="p-4 font-medium">#{ch.name}</td>
                   <td className="p-4">
                     {ch.suggestion ? (
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${
-                        ch.suggestion.role === 'internal' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                      }`}>
-                        {ch.suggestion.client} ({ch.suggestion.role})
-                      </span>
+                      <div className="flex flex-col gap-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${ch.suggestion.role === 'internal' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                          {ch.suggestion.client} ({ch.suggestion.role})
+                        </span>
+                        <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={partnershipFlags[ch.id] || false}
+                            onChange={(e) => setPartnershipFlags(prev => ({ ...prev, [ch.id]: e.target.checked }))}
+                            className="rounded border-gray-300"
+                          />
+                          🤝 Partnership Channel
+                        </label>
+                      </div>
                     ) : (
                       <span className="text-gray-400 text-sm">No match</span>
                     )}

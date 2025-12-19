@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Radio, ClipboardList, Settings, Archive, ChevronLeft, ChevronRight, LogOut, User, FileText, Sun, Moon, Bot } from 'lucide-react';
+import { LayoutDashboard, Radio, ClipboardList, Settings, Archive, ChevronLeft, ChevronRight, LogOut, User, FileText, Sun, Moon, Bot, Handshake } from 'lucide-react';
 
 import Scanner from './pages/Scanner';
 import Projects from './pages/Projects';
@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import SettingsPage from './pages/Settings';
 import Reports from './pages/Reports';
 import AlienGPT from './pages/AlienGPT';
+import Partnerships from './pages/Partnerships';
 import AiChat from './components/ui/AiChat';
 
 import { ToastProvider } from './context/ToastContext';
@@ -104,6 +105,7 @@ function AppLayout({ children }) {
           <NavLink to="/scanner" icon={Radio} label="Scanner" isCollapsed={isCollapsed} />
           {canAccessSettings() && (
             <>
+              <NavLink to="/partnerships" icon={Handshake} label="Partnerships" isCollapsed={isCollapsed} />
               <NavLink to="/reports" icon={FileText} label="Reports" isCollapsed={isCollapsed} />
               <NavLink to="/alien-gpt" icon={Bot} label="AlienGPT" isCollapsed={isCollapsed} />
             </>
@@ -192,6 +194,7 @@ function AppRoutes() {
       <Route path="/projects/:id" element={<ProtectedRoute><AppLayout><ProjectDetails /></AppLayout></ProtectedRoute>} />
       <Route path="/projects/:id/logs" element={<ProtectedRoute><AppLayout><ProjectLogs /></AppLayout></ProtectedRoute>} />
       <Route path="/pm" element={<ProtectedRoute><AppLayout><PMStation /></AppLayout></ProtectedRoute>} />
+      <Route path="/partnerships" element={<ProtectedRoute><AppLayout><Partnerships /></AppLayout></ProtectedRoute>} />
       <Route path="/scanner" element={<ProtectedRoute><AppLayout><Scanner /></AppLayout></ProtectedRoute>} />
       <Route path="/archives" element={<ProtectedRoute><AppLayout><Archives /></AppLayout></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><AppLayout><Reports /></AppLayout></ProtectedRoute>} />

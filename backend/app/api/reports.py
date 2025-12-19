@@ -95,7 +95,8 @@ def generate_report():
         return jsonify({"error": "OpenAI API key not configured. Add it in Settings."}), 400
     
     # Get project data
-    all_projects = get_project_data()
+    # Get all projects (exclude partnerships - they're not client projects)
+    all_projects = [p for p in get_project_data() if not p.get('is_partnership', False)]
     
     # Filter projects
     if project_ids:
