@@ -2,7 +2,7 @@
 Contacts API endpoints
 """
 from flask import Blueprint, request, jsonify
-from app.db import db
+from app.core.supabase import db
 from app.api.auth import require_auth, require_role
 
 contacts_api = Blueprint('contacts_api', __name__)
