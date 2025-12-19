@@ -23,7 +23,7 @@ export default function TerminalLoader() {
     }, []);
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-50 font-mono">
+        <div className="flex flex-col items-center justify-center h-screen bg-gray-50 dark:bg-gray-900 font-mono">
             <div className="bg-black text-green-400 p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-800 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-green-900/10 pointer-events-none" />
                 <div className="flex items-center gap-3 mb-6 border-b border-green-900/50 pb-4">

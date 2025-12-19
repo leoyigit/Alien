@@ -86,7 +86,8 @@ export default function Settings() {
     };
 
     const handleRemoveTeamMember = async (name) => {
-        if (!confirm(`Remove ${name} from team?`)) return;
+        // Using toast for confirmation instead of browser confirm
+        if (!window.confirm(`Remove ${name} from team?`)) return;  // Keep for now, will enhance later
         setSaving(name);
         try {
             await api.delete(`/settings/team/${encodeURIComponent(name)}`);
@@ -145,8 +146,8 @@ export default function Settings() {
             case 'superadmin': return 'bg-purple-100 text-purple-700 border-purple-200';
             case 'internal': return 'bg-blue-100 text-blue-700 border-blue-200';
             case 'shopline': return 'bg-green-100 text-green-700 border-green-200';
-            case 'merchant': return 'bg-gray-100 text-gray-700 border-gray-200';
-            default: return 'bg-gray-100 text-gray-600';
+            case 'merchant': return 'bg-gray-100 dark:bg-gray-700 text-gray-700 border-gray-200';
+            default: return 'bg-gray-100 dark:bg-gray-700 text-gray-600';
         }
     };
 
@@ -155,16 +156,16 @@ export default function Settings() {
             case 'PM': return 'bg-blue-100 text-blue-700';
             case 'Dev': return 'bg-green-100 text-green-700';
             case 'Both': return 'bg-purple-100 text-purple-700';
-            default: return 'bg-gray-100 text-gray-600';
+            default: return 'bg-gray-100 dark:bg-gray-700 text-gray-600';
         }
     };
 
     if (!canAccessSettings()) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
                 <div className="text-center">
                     <Shield size={48} className="mx-auto mb-4 text-gray-300" />
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h2>
                     <p className="text-gray-500">Only superadmins can access settings.</p>
                 </div>
             </div>
@@ -178,8 +179,8 @@ export default function Settings() {
                     <SettingsIcon size={24} className="text-white" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900">Settings</h1>
-                    <p className="text-gray-500 text-sm">Manage integrations, users, and team</p>
+                    <h1 className="text-2xl font-black text-gray-900 dark:text-white">Settings</h1>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Manage integrations, users, and team</p>
                 </div>
             </div>
 
@@ -195,22 +196,22 @@ export default function Settings() {
             )}
 
             {/* Tabs */}
-            <div className="flex bg-gray-100 p-1 rounded-xl mb-8 w-fit">
+            <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-xl mb-8 w-fit">
                 <button
                     onClick={() => setActiveTab('integrations')}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${activeTab === 'integrations' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${activeTab === 'integrations' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     <Key size={16} /> API Keys
                 </button>
                 <button
                     onClick={() => setActiveTab('team')}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${activeTab === 'team' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${activeTab === 'team' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     <UserCog size={16} /> Team
                 </button>
                 <button
                     onClick={() => setActiveTab('users')}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${activeTab === 'users' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${activeTab === 'users' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     <Users size={16} /> Portal Users
                 </button>
@@ -218,19 +219,19 @@ export default function Settings() {
 
             {loading ? (
                 <div className="flex items-center justify-center py-20">
-                    <Loader size={24} className="animate-spin text-gray-400" />
+                    <Loader size={24} className="animate-spin text-gray-400 dark:text-gray-500" />
                 </div>
             ) : activeTab === 'integrations' ? (
                 <div className="space-y-4">
                     {/* Slack Section */}
-                    <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 p-6">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                                 <span className="text-xl">💬</span>
                             </div>
                             <div>
                                 <h3 className="font-bold text-lg">Slack Integration</h3>
-                                <p className="text-gray-500 text-sm">Connect your Slack workspace</p>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm">Connect your Slack workspace</p>
                             </div>
                             <button
                                 onClick={() => handleTestConnection('slack')}
@@ -259,14 +260,14 @@ export default function Settings() {
                     </div>
 
                     {/* OpenAI Section */}
-                    <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 p-6">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                                 <span className="text-xl">🤖</span>
                             </div>
                             <div>
                                 <h3 className="font-bold text-lg">OpenAI Integration</h3>
-                                <p className="text-gray-500 text-sm">API Key, Assistant, and Vector Store</p>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm">API Key, Assistant, and Vector Store</p>
                             </div>
                             <button
                                 onClick={() => handleTestConnection('openai')}
@@ -302,27 +303,27 @@ export default function Settings() {
                     </div>
                 </div>
             ) : activeTab === 'team' ? (
-                <div className="bg-white rounded-2xl border border-gray-200">
-                    <div className="p-6 border-b border-gray-100">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200">
+                    <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                         <h3 className="font-bold text-lg">Internal Team Members</h3>
-                        <p className="text-gray-500 text-sm">These names appear in PM/Dev dropdowns</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">These names appear in PM/Dev dropdowns</p>
                     </div>
 
                     {/* Add New Member */}
-                    <div className="p-4 border-b border-gray-100 bg-gray-50">
+                    <div className="p-4 border-b border-gray-100 bg-gray-50 dark:bg-gray-900">
                         <div className="flex items-center gap-3">
                             <input
                                 type="text"
                                 value={newMemberName}
                                 onChange={(e) => setNewMemberName(e.target.value)}
                                 placeholder="Enter name..."
-                                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-black outline-none"
+                                className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-black outline-none"
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddTeamMember()}
                             />
                             <select
                                 value={newMemberRole}
                                 onChange={(e) => setNewMemberRole(e.target.value)}
-                                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium bg-white"
+                                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium bg-white dark:bg-gray-800"
                             >
                                 <option value="Both">PM & Dev</option>
                                 <option value="PM">PM Only</option>
@@ -340,20 +341,20 @@ export default function Settings() {
                     </div>
 
                     {/* Team List */}
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
                         {teamMembers.length === 0 ? (
-                            <div className="p-8 text-center text-gray-400">
+                            <div className="p-8 text-center text-gray-400 dark:text-gray-500">
                                 <UserCog size={32} className="mx-auto mb-2 opacity-50" />
                                 <p>No team members yet. Add your first one above.</p>
                             </div>
                         ) : (
                             teamMembers.map((member, idx) => (
-                                <div key={idx} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition">
-                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-600">
+                                <div key={idx} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:bg-gray-900 transition">
+                                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-gray-600">
                                         {member.name?.charAt(0) || '?'}
                                     </div>
                                     <div className="flex-1">
-                                        <div className="font-bold text-gray-900">{member.name}</div>
+                                        <div className="font-bold text-gray-900 dark:text-white">{member.name}</div>
                                     </div>
                                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${getMemberRoleBadge(member.role)}`}>
                                         {member.role === 'Both' ? 'PM & Dev' : member.role}
@@ -361,7 +362,7 @@ export default function Settings() {
                                     <button
                                         onClick={() => handleRemoveTeamMember(member.name)}
                                         disabled={saving === member.name}
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
                                     >
                                         {saving === member.name ? <Loader size={16} className="animate-spin" /> : <Trash2 size={16} />}
                                     </button>
@@ -371,20 +372,20 @@ export default function Settings() {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white rounded-2xl border border-gray-200">
-                    <div className="p-6 border-b border-gray-100">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200">
+                    <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                         <h3 className="font-bold text-lg">Portal Users</h3>
-                        <p className="text-gray-500 text-sm">Manage user roles and permissions</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">Manage user roles and permissions</p>
                     </div>
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
                         {users.map(u => (
-                            <div key={u.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition">
-                                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-600">
+                            <div key={u.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:bg-gray-900 transition">
+                                <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-gray-600">
                                     {u.display_name?.charAt(0) || u.email?.charAt(0) || '?'}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-bold text-gray-900 truncate">{u.display_name || 'Unnamed'}</div>
-                                    <div className="text-sm text-gray-500 truncate">{u.email}</div>
+                                    <div className="font-bold text-gray-900 dark:text-white truncate">{u.display_name || 'Unnamed'}</div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{u.email}</div>
                                 </div>
                                 <select
                                     value={u.role}
@@ -428,10 +429,10 @@ function SettingRow({ setting, editingKey, setEditingKey, newValue, setNewValue,
     };
 
     return (
-        <div className="flex items-center gap-4 py-3 border-t border-gray-100 first:border-0">
+        <div className="flex items-center gap-4 py-3 border-t border-gray-100 dark:border-gray-700 first:border-0">
             <div className="flex-1 min-w-0">
-                <div className="font-mono text-sm font-bold text-gray-700">{setting.key}</div>
-                <div className="text-xs text-gray-400">{setting.description}</div>
+                <div className="font-mono text-sm font-bold text-gray-700 dark:text-gray-200">{setting.key}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">{setting.description}</div>
             </div>
             {isEditing ? (
                 <div className="flex items-center gap-2 flex-1 max-w-md">
@@ -439,11 +440,11 @@ function SettingRow({ setting, editingKey, setEditingKey, newValue, setNewValue,
                         type={showValue[setting.key] ? 'text' : 'password'}
                         value={newValue}
                         onChange={(e) => setNewValue(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-black outline-none"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono focus:ring-2 focus:ring-black outline-none"
                         placeholder="Enter new value..."
                         autoFocus
                     />
-                    <button onClick={() => setShowValue(prev => ({ ...prev, [setting.key]: !prev[setting.key] }))} className="p-2 text-gray-400 hover:text-gray-600">
+                    <button onClick={() => setShowValue(prev => ({ ...prev, [setting.key]: !prev[setting.key] }))} className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300">
                         {showValue[setting.key] ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                     <button
@@ -453,20 +454,20 @@ function SettingRow({ setting, editingKey, setEditingKey, newValue, setNewValue,
                     >
                         {saving === setting.key ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
                     </button>
-                    <button onClick={() => { setEditingKey(null); setNewValue(''); setRevealedValue(null); }} className="p-2 text-gray-400 hover:text-red-500">
+                    <button onClick={() => { setEditingKey(null); setNewValue(''); setRevealedValue(null); }} className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500">
                         <X size={16} />
                     </button>
                 </div>
             ) : (
                 <div className="flex items-center gap-2">
-                    <div className="font-mono text-sm text-gray-500 bg-gray-50 px-3 py-1.5 rounded max-w-[300px] truncate" title={revealedValue || setting.masked_value}>
+                    <div className="font-mono text-sm text-gray-500 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded max-w-[300px] truncate" title={revealedValue || setting.masked_value}>
                         {!setting.has_value ? '(not set)' : revealedValue ? revealedValue : setting.masked_value}
                     </div>
                     {setting.has_value && (
                         <button
                             onClick={handleReveal}
                             disabled={revealing}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition"
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:bg-gray-700 rounded transition"
                             title={revealedValue ? 'Hide value' : 'Reveal value'}
                         >
                             {revealing ? <Loader size={16} className="animate-spin" /> : revealedValue ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -474,7 +475,7 @@ function SettingRow({ setting, editingKey, setEditingKey, newValue, setNewValue,
                     )}
                     <button
                         onClick={() => { setEditingKey(setting.key); setNewValue(''); setRevealedValue(null); }}
-                        className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200"
+                        className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200"
                     >
                         Edit
                     </button>

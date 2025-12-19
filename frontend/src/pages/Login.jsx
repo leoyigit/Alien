@@ -66,7 +66,7 @@ export default function Login() {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-black font-black text-2xl shadow-lg">
+                        <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-black font-black text-2xl shadow-lg">
                             A
                         </div>
                         <span className="text-white font-black text-3xl tracking-tight">Alien Portal</span>
@@ -75,18 +75,18 @@ export default function Login() {
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-white rounded-2xl shadow-2xl p-8">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
                     {/* Tab Switcher */}
-                    <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
+                    <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-xl mb-6">
                         <button
                             onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${mode === 'login' || mode === 'forgot' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${mode === 'login' || mode === 'forgot' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             <LogIn size={16} /> Sign In
                         </button>
                         <button
                             onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${mode === 'signup' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition ${mode === 'signup' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             <UserPlus size={16} /> Sign Up
                         </button>
@@ -96,7 +96,7 @@ export default function Login() {
                     {mode === 'forgot' && (
                         <div className="mb-4">
                             <h3 className="font-bold text-lg">Reset Password</h3>
-                            <p className="text-sm text-gray-500">Enter your email to receive a reset link</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Enter your email to receive a reset link</p>
                         </div>
                     )}
 
@@ -116,14 +116,14 @@ export default function Login() {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {mode === 'signup' && (
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Full Name</label>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Full Name</label>
                                 <div className="relative">
-                                    <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                                     <input
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
                                         placeholder="John Doe"
                                     />
                                 </div>
@@ -131,14 +131,14 @@ export default function Login() {
                         )}
 
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Email</label>
                             <div className="relative">
-                                <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
                                     placeholder="you@company.com"
                                     required
                                 />
@@ -147,14 +147,14 @@ export default function Login() {
 
                         {mode !== 'forgot' && (
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Password</label>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Password</label>
                                 <div className="relative">
-                                    <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                                     <input
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition"
                                         placeholder="••••••••"
                                         required
                                         minLength={6}
@@ -178,7 +178,7 @@ export default function Login() {
                             <button
                                 type="button"
                                 onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
-                                className="text-sm text-gray-500 hover:underline"
+                                className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
                             >
                                 ← Back to login
                             </button>
@@ -211,8 +211,8 @@ export default function Login() {
 
                     {/* Role Info */}
                     {mode !== 'forgot' && (
-                        <div className="mt-6 pt-6 border-t border-gray-100">
-                            <p className="text-xs text-gray-400 text-center">
+                        <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                            <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
                                 Your role will be automatically assigned based on your email domain
                             </p>
                         </div>
@@ -220,7 +220,7 @@ export default function Login() {
                 </div>
 
                 {/* Footer */}
-                <p className="text-center text-gray-500 text-xs mt-6">
+                <p className="text-center text-gray-500 dark:text-gray-400 text-xs mt-6">
                     © {new Date().getFullYear()} Power Commerce & Flyrank. All rights reserved.
                 </p>
             </div>

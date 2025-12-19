@@ -124,7 +124,7 @@ export default function Projects() {
       case 'Stuck / On Hold': return { card: 'bg-red-50 border-red-200', badge: 'bg-red-100 text-red-700' };
       case 'Almost Ready': return { card: 'bg-yellow-50 border-yellow-200', badge: 'bg-yellow-100 text-yellow-800' };
       case 'Ready': return { card: 'bg-green-50 border-green-200', badge: 'bg-green-100 text-green-700' };
-      default: return { card: 'bg-white border-gray-200', badge: 'bg-blue-100 text-blue-700' };
+      default: return { card: 'bg-white dark:bg-gray-800 border-gray-200', badge: 'bg-blue-100 text-blue-700' };
     }
   };
 
@@ -146,40 +146,40 @@ export default function Projects() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Dashboard</h1>
-          <p className="text-gray-500 mt-1">Overview of all client communications</p>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Overview of all client communications</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex bg-white border border-gray-200 p-1 rounded-lg shadow-sm">
+          <div className="flex bg-white dark:bg-gray-800 border border-gray-200 p-1 rounded-lg shadow-sm">
             {['All', 'New / In Progress', 'Almost Ready', 'Ready', 'Launched', 'Stuck / On Hold'].map(filter => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-md transition ${activeFilter === filter ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-md transition ${activeFilter === filter ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 dark:bg-gray-900'}`}
               >
                 {filter === 'All' ? 'All' : filter.split(' / ')[0]}
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeFilter === filter ? 'bg-white text-black' : 'bg-gray-100 text-gray-500'}`}>{getFilterCount(filter)}</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeFilter === filter ? 'bg-white dark:bg-gray-800 text-black' : 'bg-gray-100 text-gray-500'}`}>{getFilterCount(filter)}</span>
               </button>
             ))}
           </div>
-          <button onClick={handleRefresh} disabled={refreshing} className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50">
+          <button onClick={handleRefresh} disabled={refreshing} className="p-2 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50">
             <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {/* FILTER & SEARCH BAR */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
         <div className="flex flex-col md:flex-row gap-3">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Search projects..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-black outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-black outline-none"
             />
           </div>
 
@@ -187,7 +187,7 @@ export default function Projects() {
           <select
             value={pmFilter}
             onChange={(e) => setPmFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white dark:bg-gray-800"
           >
             <option value="all">All PMs</option>
             {uniquePMs.filter(pm => pm !== 'all').map(pm => (
@@ -199,7 +199,7 @@ export default function Projects() {
           <select
             value={devFilter}
             onChange={(e) => setDevFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white dark:bg-gray-800"
           >
             <option value="all">All Devs</option>
             {uniqueDevs.filter(dev => dev !== 'all').map(dev => (
@@ -211,7 +211,7 @@ export default function Projects() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white dark:bg-gray-800"
           >
             <option value="lastUpdated">Last Updated</option>
             <option value="name">Name (A-Z)</option>
@@ -222,7 +222,7 @@ export default function Projects() {
           {activeFiltersCount > 0 && (
             <button
               onClick={clearFilters}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold text-sm flex items-center gap-2 transition whitespace-nowrap"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold text-sm flex items-center gap-2 transition whitespace-nowrap"
             >
               <X size={14} /> Clear ({activeFiltersCount})
             </button>
@@ -254,7 +254,7 @@ export default function Projects() {
                       {p.client_name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <h2 className="font-bold text-gray-900 leading-tight truncate pr-2">{p.client_name}</h2>
+                      <h2 className="font-bold text-gray-900 dark:text-white leading-tight truncate pr-2">{p.client_name}</h2>
                       <div className="relative">
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStatusDropdown(statusDropdown === p.id ? null : p.id); }}
@@ -267,7 +267,7 @@ export default function Projects() {
                         {statusDropdown === p.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStatusDropdown(null); }} />
-                            <div className="absolute left-0 top-full mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-200 z-50 py-1">
+                            <div className="absolute left-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 z-50 py-1">
                               {['New / In Progress', 'Almost Ready', 'Ready', 'Launched', 'Stuck / On Hold'].map(cat => (
                                 <button
                                   key={cat}
@@ -281,7 +281,7 @@ export default function Projects() {
                                       setStatusDropdown(null);
                                     } catch (err) { showToast('Failed to update', 'error'); }
                                   }}
-                                  className={`w-full text-left px-3 py-1.5 text-[10px] font-semibold hover:bg-gray-50 ${p.category === cat ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+                                  className={`w-full text-left px-3 py-1.5 text-[10px] font-semibold hover:bg-gray-50 dark:bg-gray-900 ${p.category === cat ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
                                 >
                                   {cat}
                                 </button>
@@ -295,18 +295,18 @@ export default function Projects() {
                   {/* Progress % (Right Aligned) */}
                   <div className="flex flex-col items-end">
                     <span className="text-2xl font-black text-gray-200">{progress}%</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider hidden sm:inline">Migration</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider sm:hidden">Migr.</span>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider hidden sm:inline">Migration</span>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider sm:hidden">Migr.</span>
                   </div>
                 </div>
               </div>
               <div className="p-5 space-y-4 flex-1">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/60 p-2.5 rounded-lg border border-black/5 group/msgs">
-                    <div className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1 mb-0.5">
+                  <div className="bg-white dark:bg-gray-800/60 p-2.5 rounded-lg border border-black/5 group/msgs">
+                    <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 flex items-center gap-1 mb-0.5">
                       <MessageSquare size={10} /> Messages
                     </div>
-                    <div className={`text-lg font-bold ${syncing === p.id ? 'text-blue-600' : 'text-gray-900'}`}>
+                    <div className={`text-lg font-bold ${syncing === p.id ? 'text-blue-600' : 'text-gray-900 dark:text-white'}`}>
                       {syncing === p.id ? (
                         <span className="animate-pulse flex items-center gap-1">
                           <RefreshCw size={14} className="animate-spin" /> Syncing...
@@ -319,27 +319,27 @@ export default function Projects() {
                           </span>
                           <span className="hidden group-hover/msgs:inline text-[13px]">
                             <span className="text-blue-600">{p.stats?.internal_messages || 0}</span>
-                            <span className="text-gray-400 mx-1">int</span>
+                            <span className="text-gray-400 dark:text-gray-500 mx-1">int</span>
                             <span className="text-green-600">{p.stats?.external_messages || 0}</span>
-                            <span className="text-gray-400 ml-1">ext</span>
+                            <span className="text-gray-400 dark:text-gray-500 ml-1">ext</span>
                           </span>
                         </>
                       )}
                     </div>
                   </div>
-                  <div className="bg-white/60 p-2.5 rounded-lg border border-black/5 relative">
-                    <div className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1 mb-0.5">
+                  <div className="bg-white dark:bg-gray-800/60 p-2.5 rounded-lg border border-black/5 relative">
+                    <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 flex items-center gap-1 mb-0.5">
                       {isPmUpdate ? <User size={10} /> : <MessageSquare size={10} />} {isPmUpdate ? "PM Update" : "Slack Activity"}
                     </div>
-                    <div className="text-sm font-semibold text-gray-900 truncate">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                       {timeAgo(p.stats ? p.stats.last_active : null)}
                     </div>
                   </div>
                 </div>
                 <div>
-                  <Link to={`/projects/${p.id}`} state={{ from: '/' }} className="block w-full text-left p-3 bg-white/80 hover:bg-white border border-black/5 hover:border-blue-300 rounded-lg transition group shadow-sm">
+                  <Link to={`/projects/${p.id}`} state={{ from: '/' }} className="block w-full text-left p-3 bg-white dark:bg-gray-800/80 hover:bg-white dark:bg-gray-800 border border-black/5 hover:border-blue-300 rounded-lg transition group shadow-sm">
                     <div className="flex justify-between items-center gap-2">
-                      <p className="text-xs font-medium text-gray-600 line-clamp-2 leading-relaxed">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed">
                         {p.status_detail || "No status update recorded yet."}
                       </p>
                       <ArrowRight size={14} className="text-gray-300 group-hover:text-blue-600 shrink-0 transition-colors" />
@@ -354,13 +354,13 @@ export default function Projects() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-[10px] text-gray-400 italic py-1">No active blockers</div>
+                    <div className="text-[10px] text-gray-400 dark:text-gray-500 italic py-1">No active blockers</div>
                   )}
                 </div>
               </div>
-              <div className="px-5 py-3 bg-white/40 border-t border-black/5 flex justify-between items-center">
+              <div className="px-5 py-3 bg-white dark:bg-gray-800/40 border-t border-black/5 flex justify-between items-center">
                 <div className="group/sync relative flex items-center">
-                  <button onClick={() => handleSync(p.id)} disabled={syncing === p.id} className="text-[10px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1 hover:text-blue-600 disabled:opacity-50">
+                  <button onClick={() => handleSync(p.id)} disabled={syncing === p.id} className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1 hover:text-blue-600 disabled:opacity-50">
                     <RefreshCw size={10} className={syncing === p.id ? "animate-spin" : ""} /> {syncing === p.id ? "SYNCING..." : "SYNC"}
                   </button>
                   {/* Hover tooltip for channels */}

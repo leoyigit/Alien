@@ -60,12 +60,12 @@ export default function Partnerships() {
             {/* HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">Partnership Channels</h1>
-                    <p className="text-gray-500 mt-1">Track internal & partnership communications</p>
+                    <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Partnership Channels</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Track internal & partnership communications</p>
                 </div>
                 <button
                     onClick={() => fetchPartnerships(true)}
-                    className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                    className="p-2 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
                 >
                     <RefreshCw size={18} />
                 </button>
@@ -74,7 +74,7 @@ export default function Partnerships() {
             {/* GRID */}
             <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                 {partnerships.map((p) => (
-                    <div key={p.id} className="group rounded-xl border border-gray-200 bg-white hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col">
+                    <div key={p.id} className="group rounded-xl border border-gray-200 bg-white dark:bg-gray-800 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col">
                         <div className="p-5 border-b border-black/5">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
@@ -82,7 +82,7 @@ export default function Partnerships() {
                                         {p.client_name.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="min-w-0">
-                                        <h2 className="font-bold text-gray-900 leading-tight truncate pr-2">{p.client_name}</h2>
+                                        <h2 className="font-bold text-gray-900 dark:text-white leading-tight truncate pr-2">{p.client_name}</h2>
                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide mt-1 bg-purple-100 text-purple-700">
                                             🤝 Partnership
                                         </span>
@@ -92,11 +92,11 @@ export default function Partnerships() {
                         </div>
                         <div className="p-5 space-y-4 flex-1">
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-white/60 p-2.5 rounded-lg border border-black/5 group/msgs">
-                                    <div className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1 mb-0.5">
+                                <div className="bg-white dark:bg-gray-800/60 p-2.5 rounded-lg border border-black/5 group/msgs">
+                                    <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 flex items-center gap-1 mb-0.5">
                                         <MessageSquare size={10} /> Messages
                                     </div>
-                                    <div className="text-lg font-bold text-gray-900">
+                                    <div className="text-lg font-bold text-gray-900 dark:text-white">
                                         {syncing === p.id ? (
                                             <span className="animate-pulse flex items-center gap-1">
                                                 <RefreshCw size={14} className="animate-spin" /> Syncing...
@@ -108,29 +108,29 @@ export default function Partnerships() {
                                                 </span>
                                                 <span className="hidden group-hover/msgs:inline text-[13px]">
                                                     <span className="text-blue-600">{p.stats?.internal_messages || 0}</span>
-                                                    <span className="text-gray-400 mx-1">int</span>
+                                                    <span className="text-gray-400 dark:text-gray-500 mx-1">int</span>
                                                     <span className="text-green-600">{p.stats?.external_messages || 0}</span>
-                                                    <span className="text-gray-400 ml-1">ext</span>
+                                                    <span className="text-gray-400 dark:text-gray-500 ml-1">ext</span>
                                                 </span>
                                             </>
                                         )}
                                     </div>
                                 </div>
-                                <div className="bg-white/60 p-2.5 rounded-lg border border-black/5">
-                                    <div className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1 mb-0.5">
+                                <div className="bg-white dark:bg-gray-800/60 p-2.5 rounded-lg border border-black/5">
+                                    <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 flex items-center gap-1 mb-0.5">
                                         <MessageSquare size={10} /> Last Activity
                                     </div>
-                                    <div className="text-sm font-semibold text-gray-900 truncate">
+                                    <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                                         {timeAgo(p.stats ? p.stats.last_active : null)}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="px-5 py-3 bg-white/40 border-t border-black/5 flex justify-between items-center">
+                        <div className="px-5 py-3 bg-white dark:bg-gray-800/40 border-t border-black/5 flex justify-between items-center">
                             <button
                                 onClick={() => handleSync(p.id)}
                                 disabled={syncing === p.id}
-                                className="text-[10px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1 hover:text-blue-600 disabled:opacity-50"
+                                className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1 hover:text-blue-600 disabled:opacity-50"
                             >
                                 <RefreshCw size={10} className={syncing === p.id ? "animate-spin" : ""} />
                                 {syncing === p.id ? "SYNCING..." : "SYNC"}
@@ -148,7 +148,7 @@ export default function Partnerships() {
             </div>
 
             {partnerships.length === 0 && (
-                <div className="text-center py-16 bg-white border border-dashed border-gray-300 rounded-xl text-gray-400">
+                <div className="text-center py-16 bg-white dark:bg-gray-800 border border-dashed border-gray-300 rounded-xl text-gray-400">
                     <Hash size={48} className="mx-auto mb-3 opacity-30" />
                     <p className="font-medium mb-1">No partnership channels yet</p>
                     <p className="text-xs">Use the Scanner to mark channels as partnerships</p>

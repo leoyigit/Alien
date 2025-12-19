@@ -226,19 +226,19 @@ export default function PMStation() {
   if (loading && projects.length === 0) return <TerminalLoader />;
 
   return (
-    <div className="max-w-screen-2xl mx-auto p-6 bg-gray-50 min-h-screen font-sans">
+    <div className="max-w-screen-2xl mx-auto p-6 bg-gray-50 dark:bg-gray-900 min-h-screen font-sans">
       <div className="flex flex-col xl:flex-row justify-between items-end mb-6 gap-4">
-        <div><h1 className="text-3xl font-black text-gray-900 tracking-tight">PM Station</h1><p className="text-gray-500 mt-1 text-sm">Manage active migrations.</p></div>
+        <div><h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">PM Station</h1><p className="text-gray-500 mt-1 text-sm">Manage active migrations.</p></div>
         <div className="flex items-center gap-3">
-          <div className="flex bg-white border border-gray-200 p-1 rounded-lg shadow-sm">
+          <div className="flex bg-white dark:bg-gray-800 border border-gray-200 p-1 rounded-lg shadow-sm">
             {filters.map(f => (
-              <button key={f} onClick={() => setActiveFilter(f)} className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-md transition ${activeFilter === f ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>
+              <button key={f} onClick={() => setActiveFilter(f)} className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-md transition ${activeFilter === f ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50 dark:bg-gray-900'}`}>
                 {f === 'All Active' ? 'All Active' : f.split(' / ')[0]}
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeFilter === f ? 'bg-white text-black' : 'bg-gray-100 text-gray-500'}`}>{getFilterCount(f)}</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeFilter === f ? 'bg-white dark:bg-gray-800 text-black' : 'bg-gray-100 text-gray-500'}`}>{getFilterCount(f)}</span>
               </button>
             ))}
           </div>
-          <button onClick={handleRefresh} disabled={refreshing} className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500 disabled:opacity-50">
+          <button onClick={handleRefresh} disabled={refreshing} className="p-2 bg-white dark:bg-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500 disabled:opacity-50">
             <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           </button>
           <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 shadow-lg transition"><Plus size={16} /> New Client</button>
@@ -246,17 +246,17 @@ export default function PMStation() {
       </div>
 
       {/* FILTER & SEARCH BAR */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
         <div className="flex flex-col md:flex-row gap-3">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Search projects..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-black outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-black outline-none"
             />
           </div>
 
@@ -264,7 +264,7 @@ export default function PMStation() {
           <select
             value={pmFilter}
             onChange={(e) => setPmFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white dark:bg-gray-800"
           >
             <option value="all">All PMs</option>
             {uniquePMs.filter(pm => pm !== 'all').map(pm => (
@@ -276,7 +276,7 @@ export default function PMStation() {
           <select
             value={devFilter}
             onChange={(e) => setDevFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-black outline-none bg-white dark:bg-gray-800"
           >
             <option value="all">All Devs</option>
             {uniqueDevs.filter(dev => dev !== 'all').map(dev => (
@@ -288,7 +288,7 @@ export default function PMStation() {
           {activeFiltersCount > 0 && (
             <button
               onClick={clearFilters}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold text-sm flex items-center gap-2 transition whitespace-nowrap"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold text-sm flex items-center gap-2 transition whitespace-nowrap"
             >
               <X size={14} /> Clear ({activeFiltersCount})
             </button>
@@ -296,25 +296,25 @@ export default function PMStation() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold border-b border-gray-100 select-none">
+          <thead className="bg-gray-50 dark:bg-gray-900 text-gray-400 text-[10px] uppercase font-bold border-b border-gray-100 select-none">
             <tr>
-              <th className="p-4 pl-6 w-44 cursor-pointer hover:text-gray-700" onClick={() => handleSort('client_name')}>Client {sortConfig.key === 'client_name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-              <th className="p-4 w-28 cursor-pointer hover:text-gray-700" onClick={() => handleSort('category')}>Stage {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+              <th className="p-4 pl-6 w-44 cursor-pointer hover:text-gray-700 dark:text-gray-200" onClick={() => handleSort('client_name')}>Client {sortConfig.key === 'client_name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+              <th className="p-4 w-28 cursor-pointer hover:text-gray-700 dark:text-gray-200" onClick={() => handleSort('category')}>Stage {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
               <th className="p-4 min-w-[280px]">Latest Status</th>
               <th className="p-4 w-28">Blocker</th>
-              <th className="p-4 w-24 cursor-pointer hover:text-gray-700" onClick={() => handleSort('last_contact_date')}>Last {sortConfig.key === 'last_contact_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-              <th className="p-4 w-24 cursor-pointer hover:text-gray-700" onClick={() => handleSort('next_call')}>Next {sortConfig.key === 'next_call' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+              <th className="p-4 w-24 cursor-pointer hover:text-gray-700 dark:text-gray-200" onClick={() => handleSort('last_contact_date')}>Last {sortConfig.key === 'last_contact_date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
+              <th className="p-4 w-24 cursor-pointer hover:text-gray-700 dark:text-gray-200" onClick={() => handleSort('next_call')}>Next {sortConfig.key === 'next_call' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
               <th className="p-4 text-right pr-6 w-28">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {filteredProjects.map((p) => (
-              <tr key={p.id} onClick={() => navigate(`/projects/${p.id}`, { state: { from: '/pm' } })} className="hover:bg-gray-50 transition cursor-pointer group">
-                <td className="p-4 pl-6"><div className="font-bold text-gray-900 flex items-center gap-2">{p.client_name}<ExternalLink size={12} className="opacity-0 group-hover:opacity-100 text-blue-400" /></div><div className="text-xs text-gray-400">{p.owner || "Unassigned"}</div></td>
+              <tr key={p.id} onClick={() => navigate(`/projects/${p.id}`, { state: { from: '/pm' } })} className="hover:bg-gray-50 dark:bg-gray-900 transition cursor-pointer group">
+                <td className="p-4 pl-6"><div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">{p.client_name}<ExternalLink size={12} className="opacity-0 group-hover:opacity-100 text-blue-400" /></div><div className="text-xs text-gray-400">{p.owner || "Unassigned"}</div></td>
                 <td className="p-4"><span className={`inline-block px-2.5 py-1 rounded-md text-[10px] font-bold uppercase border ${getCategoryStyle(p.category)}`}>{p.category}</span></td>
-                <td className="p-4"><p className="text-gray-600 text-xs line-clamp-2">{p.status_detail || "No update."}</p></td>
+                <td className="p-4"><p className="text-gray-600 dark:text-gray-300 text-xs line-clamp-2">{p.status_detail || "No update."}</p></td>
                 <td className="p-4">
                   {(() => {
                     const { cats, desc } = parseBlocker(p.blocker);
@@ -324,7 +324,7 @@ export default function PMStation() {
                         {cats.map(c => (
                           <span key={c} className="px-1 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-[9px] font-semibold">{c}</span>
                         ))}
-                        {cats.length === 0 && <span className="text-[10px] text-gray-500 truncate max-w-[80px]">{desc}</span>}
+                        {cats.length === 0 && <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[80px]">{desc}</span>}
                         {desc && (
                           <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-black text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition pointer-events-none z-20">
                             {desc}
@@ -335,8 +335,8 @@ export default function PMStation() {
                     );
                   })()}
                 </td>
-                <td className="p-4 text-gray-500 font-mono text-xs">{p.last_contact_date ? new Date(p.last_contact_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : "-"}</td>
-                <td className="p-4 text-gray-500 font-mono text-xs">
+                <td className="p-4 text-gray-500 dark:text-gray-400 font-mono text-xs">{p.last_contact_date ? new Date(p.last_contact_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : "-"}</td>
+                <td className="p-4 text-gray-500 dark:text-gray-400 font-mono text-xs">
                   {(() => {
                     if (!p.next_call) return "-";
                     const callDate = new Date(p.next_call);
@@ -351,12 +351,12 @@ export default function PMStation() {
                     <button
                       onClick={(e) => handleSyncProject(e, p.id)}
                       disabled={syncingProject === p.id}
-                      className="p-1.5 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600 transition"
+                      className="p-1.5 hover:bg-blue-50 rounded text-gray-400 dark:text-gray-500 hover:text-blue-600 transition"
                       title="Sync Slack"
                     >
                       <RefreshCw size={14} className={syncingProject === p.id ? 'animate-spin' : ''} />
                     </button>
-                    <button onClick={(e) => handleEditClick(e, p)} className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
+                    <button onClick={(e) => handleEditClick(e, p)} className="p-1.5 hover:bg-gray-100 dark:bg-gray-700 rounded text-gray-400 hover:text-gray-600">
                       <Pencil size={14} />
                     </button>
                   </div>
@@ -369,20 +369,20 @@ export default function PMStation() {
       {editingProject && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setEditingProject(null)} />
-          <div className="bg-white w-full max-w-lg h-full shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-lg h-full shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
               <div className="w-full mr-4">
                 <input
-                  className="text-xl font-bold text-gray-900 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-full"
+                  className="text-xl font-bold text-gray-900 dark:text-white bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-full"
                   value={formData.client_name}
                   onChange={e => setFormData({ ...formData, client_name: e.target.value })}
                 />
-                <p className="text-xs text-gray-500 font-medium mt-1">Quick Edit - Click name to rename</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">Quick Edit - Click name to rename</p>
               </div>
               <button onClick={() => setEditingProject(null)} className="p-2 hover:bg-gray-200 rounded-full transition"><X size={20} className="text-gray-500" /></button>
             </div>
             <div className="p-8 flex-1 overflow-y-auto space-y-6">
-              <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Stage</label><div className="grid grid-cols-2 gap-2">{['New / In Progress', 'Almost Ready', 'Ready', 'Launched', 'Stuck / On Hold'].map(cat => (<button key={cat} onClick={() => setFormData({ ...formData, category: cat })} className={`p-2 rounded border text-xs font-bold transition ${formData.category === cat ? getCategoryStyle(cat) + " ring-2 ring-offset-1 ring-gray-200" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}>{cat}</button>))}</div></div>
+              <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Stage</label><div className="grid grid-cols-2 gap-2">{['New / In Progress', 'Almost Ready', 'Ready', 'Launched', 'Stuck / On Hold'].map(cat => (<button key={cat} onClick={() => setFormData({ ...formData, category: cat })} className={`p-2 rounded border text-xs font-bold transition ${formData.category === cat ? getCategoryStyle(cat) + " ring-2 ring-offset-1 ring-gray-200" : "bg-white dark:bg-gray-800 border-gray-200 text-gray-500 hover:bg-gray-50"}`}>{cat}</button>))}</div></div>
               <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
                 <input
                   type="checkbox"
@@ -395,7 +395,7 @@ export default function PMStation() {
                   Send update to Slack channel (#operations)
                 </label>
               </div>
-              <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status Note</label><textarea className="w-full border border-gray-300 rounded-lg p-3 text-sm h-32 focus:ring-2 focus:ring-black outline-none shadow-sm" value={formData.status_detail} onChange={e => setFormData({ ...formData, status_detail: e.target.value })} placeholder="What's new?" /></div>
+              <div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Status Note</label><textarea className="w-full border border-gray-300 rounded-lg p-3 text-sm h-32 focus:ring-2 focus:ring-black outline-none shadow-sm" value={formData.status_detail} onChange={e => setFormData({ ...formData, status_detail: e.target.value })} placeholder="What's new?" /></div>
               <div className="bg-red-50 p-4 rounded-lg border border-red-100">
                 <label className="block text-xs font-bold text-red-600 uppercase mb-2 flex items-center gap-2"><AlertCircle size={14} /> Blockers</label>
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -405,7 +405,7 @@ export default function PMStation() {
                       onClick={() => toggleBlockerCat(opt)}
                       className={`px-3 py-1.5 rounded text-xs font-bold border transition ${formData.blocker_cats?.includes(opt)
                         ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                        : 'bg-white text-gray-600 border-red-200 hover:bg-red-100'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 border-red-200 hover:bg-red-100'
                         }`}
                     >
                       {opt}
@@ -413,35 +413,35 @@ export default function PMStation() {
                   ))}
                 </div>
                 <textarea
-                  className="w-full border border-red-200 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-red-500 outline-none bg-white min-h-[60px]"
+                  className="w-full border border-red-200 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-gray-800 min-h-[60px]"
                   value={formData.blocker_desc}
                   onChange={e => setFormData({ ...formData, blocker_desc: e.target.value })}
                   placeholder="Explain the blocker..."
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Last Call</label><input type="date" className="w-full border rounded-lg p-2.5 text-sm outline-none" value={formData.last_contact_date} onChange={e => setFormData({ ...formData, last_contact_date: e.target.value })} /></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Next Call</label><input type="date" className="w-full border rounded-lg p-2.5 text-sm outline-none" value={formData.next_call} onChange={e => setFormData({ ...formData, next_call: e.target.value })} /></div></div>
+              <div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Last Call</label><input type="date" className="w-full border rounded-lg p-2.5 text-sm outline-none" value={formData.last_contact_date} onChange={e => setFormData({ ...formData, last_contact_date: e.target.value })} /></div><div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Next Call</label><input type="date" className="w-full border rounded-lg p-2.5 text-sm outline-none" value={formData.next_call} onChange={e => setFormData({ ...formData, next_call: e.target.value })} /></div></div>
 
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">PM (Owner)</label>
-                  <select className="w-full border rounded-lg p-2.5 text-sm outline-none bg-white" value={formData.owner} onChange={e => setFormData({ ...formData, owner: e.target.value })}>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">PM (Owner)</label>
+                  <select className="w-full border rounded-lg p-2.5 text-sm outline-none bg-white dark:bg-gray-800" value={formData.owner} onChange={e => setFormData({ ...formData, owner: e.target.value })}>
                     <option value="">Unassigned</option>
                     {teamMembers.filter(m => m.role === 'PM' || m.role === 'Both').map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Developer</label>
-                  <select className="w-full border rounded-lg p-2.5 text-sm outline-none bg-white" value={formData.developer} onChange={e => setFormData({ ...formData, developer: e.target.value })}>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Developer</label>
+                  <select className="w-full border rounded-lg p-2.5 text-sm outline-none bg-white dark:bg-gray-800" value={formData.developer} onChange={e => setFormData({ ...formData, developer: e.target.value })}>
                     <option value="">Unassigned</option>
                     {teamMembers.filter(m => m.role === 'Dev' || m.role === 'Both').map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div className="pt-6 border-t"><button onClick={() => navigate(`/projects/${editingProject.id}`)} className="w-full py-3 bg-gray-50 text-gray-600 font-bold rounded-xl hover:bg-gray-100 flex items-center justify-center gap-2 border transition">Open Full Page <ExternalLink size={14} /></button></div>
+              <div className="pt-6 border-t"><button onClick={() => navigate(`/projects/${editingProject.id}`)} className="w-full py-3 bg-gray-50 dark:bg-gray-900 text-gray-600 font-bold rounded-xl hover:bg-gray-100 flex items-center justify-center gap-2 border transition">Open Full Page <ExternalLink size={14} /></button></div>
             </div>
-            <div className="p-4 border-t bg-gray-50"><button onClick={handleSaveReport} className="w-full py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-800 flex justify-center gap-2 shadow-lg transition"><Save size={18} /> Save Update</button></div>
+            <div className="p-4 border-t bg-gray-50 dark:bg-gray-900"><button onClick={handleSaveReport} className="w-full py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-800 flex justify-center gap-2 shadow-lg transition"><Save size={18} /> Save Update</button></div>
           </div>
         </div>
       )}
@@ -450,19 +450,19 @@ export default function PMStation() {
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 p-8 space-y-6 animate-in zoom-in-50 duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md relative z-10 p-8 space-y-6 animate-in zoom-in-50 duration-200">
             <div className="flex justify-between items-start">
-              <div><h2 className="text-2xl font-black text-gray-900">New Client</h2><p className="text-sm text-gray-500 mt-1">Create a new migration project.</p></div>
-              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
+              <div><h2 className="text-2xl font-black text-gray-900 dark:text-white">New Client</h2><p className="text-sm text-gray-500 mt-1">Create a new migration project.</p></div>
+              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-gray-100 dark:bg-gray-700 rounded-full"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Client Name</label>
-                <input className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-black outline-none font-bold" placeholder="e.g. Fresh Peaches" value={newClientName} onChange={e => setNewClientName(e.target.value)} autoFocus />
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Client Name</label>
+                <input className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-black outline-none font-bold" placeholder="e.g. Fresh Peaches" value={newClientName} onChange={e => setNewClientName(e.target.value)} autoFocus />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Assigned PM</label>
-                <select className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none bg-white" value={newClientOwner} onChange={e => setNewClientOwner(e.target.value)}>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Assigned PM</label>
+                <select className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none bg-white dark:bg-gray-800" value={newClientOwner} onChange={e => setNewClientOwner(e.target.value)}>
                   <option value="">Unassigned</option>
                   {teamMembers.filter(m => m.role === 'PM' || m.role === 'Both').map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                 </select>

@@ -136,10 +136,10 @@ export default function Reports() {
 
     if (!canEditProject()) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
                 <div className="text-center">
                     <AlertCircle size={48} className="mx-auto mb-4 text-gray-300" />
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h2>
                     <p className="text-gray-500">Only internal team members can access reports.</p>
                 </div>
             </div>
@@ -154,14 +154,14 @@ export default function Reports() {
                     <Sparkles size={24} className="text-white" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900">AI Reports</h1>
-                    <p className="text-gray-500 text-sm">Generate executive reports with AI</p>
+                    <h1 className="text-2xl font-black text-gray-900 dark:text-white">AI Reports</h1>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Generate executive reports with AI</p>
                 </div>
             </div>
 
             {/* Report Type Selector */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-4">Select Report Type</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 p-6 mb-6">
+                <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-4">Select Report Type</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {reportTypes.map(type => (
                         <button
@@ -169,35 +169,35 @@ export default function Reports() {
                             onClick={() => setSelectedType(type.id)}
                             className={`p - 4 rounded - xl border - 2 text - left transition ${selectedType === type.id
                                 ? 'border-purple-500 bg-purple-50'
-                                : 'border-gray-200 hover:border-gray-300 bg-white'
+                                : 'border-gray-200 hover:border-gray-300 bg-white dark:bg-gray-800'
                                 } `}
                         >
                             <div className="flex items-center gap-3 mb-2">
-                                <div className={`p - 2 rounded - lg ${selectedType === type.id ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-500'} `}>
+                                <div className={`p - 2 rounded - lg ${selectedType === type.id ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'} `}>
                                     {getTypeIcon(type.id)}
                                 </div>
                                 <span className="text-2xl">{type.icon}</span>
                             </div>
-                            <h4 className="font-bold text-gray-900">{type.name}</h4>
-                            <p className="text-sm text-gray-500 mt-1">{type.description}</p>
+                            <h4 className="font-bold text-gray-900 dark:text-white">{type.name}</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{type.description}</p>
                         </button>
                     ))}
                 </div>
 
                 {/* Send To Dropdown */}
                 <div className="mt-6">
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
                         Send Report To (Slack)
                     </label>
                     <select
                         value={sendTo}
                         onChange={(e) => setSendTo(e.target.value)}
-                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
                     >
                         <option value="internal">Internal Team Only</option>
                         <option value="external">Internal + External (Shopline)</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">Choose which team receives the Slack notification</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose which team receives the Slack notification</p>
                 </div>
 
                 {/* Generate Button */}
@@ -230,14 +230,14 @@ export default function Reports() {
 
             {/* Generated Report */}
             {report && (
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 overflow-hidden">
                     {/* Report Header */}
-                    <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                    <div className="p-6 border-b border-gray-100 bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
                         <div>
-                            <h3 className="font-bold text-lg text-gray-900">
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">
                                 {reportTypes.find(t => t.id === report.report_type)?.name || 'Report'}
                             </h3>
-                            <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 <span className="flex items-center gap-1">
                                     <Calendar size={14} />
                                     {new Date(report.generated_at).toLocaleString()}
@@ -255,7 +255,7 @@ export default function Reports() {
                                 )}
                                 {user && (
                                     <span className="text-gray-400">
-                                        Created by: <span className="text-gray-600 font-medium">{user.display_name || user.email}</span>
+                                        Created by: <span className="text-gray-600 dark:text-gray-300 font-medium">{user.display_name || user.email}</span>
                                     </span>
                                 )}
                             </div>
@@ -271,7 +271,7 @@ export default function Reports() {
                             </button>
                             <button
                                 onClick={handleCopy}
-                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 shadow-sm transition"
+                                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 shadow-sm transition"
                             >
                                 {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                                 {copied ? 'Copied!' : 'Copy'}
@@ -293,24 +293,24 @@ export default function Reports() {
                             {report.content.split('\n').map((line, i) => {
                                 // Simple markdown-like formatting
                                 if (line.startsWith('# ')) {
-                                    return <h1 key={i} className="text-2xl font-black text-gray-900 mt-6 mb-4">{line.slice(2)}</h1>;
+                                    return <h1 key={i} className="text-2xl font-black text-gray-900 dark:text-white mt-6 mb-4">{line.slice(2)}</h1>;
                                 }
                                 if (line.startsWith('## ')) {
-                                    return <h2 key={i} className="text-xl font-bold text-gray-800 mt-5 mb-3 border-b pb-2">{line.slice(3)}</h2>;
+                                    return <h2 key={i} className="text-xl font-bold text-gray-800 dark:text-gray-100 mt-5 mb-3 border-b pb-2">{line.slice(3)}</h2>;
                                 }
                                 if (line.startsWith('### ')) {
-                                    return <h3 key={i} className="text-lg font-bold text-gray-700 mt-4 mb-2">{line.slice(4)}</h3>;
+                                    return <h3 key={i} className="text-lg font-bold text-gray-700 dark:text-gray-200 mt-4 mb-2">{line.slice(4)}</h3>;
                                 }
                                 if (line.startsWith('- ') || line.startsWith('* ')) {
-                                    return <li key={i} className="text-gray-600 ml-4">{line.slice(2)}</li>;
+                                    return <li key={i} className="text-gray-600 dark:text-gray-300 ml-4">{line.slice(2)}</li>;
                                 }
                                 if (line.startsWith('**') && line.endsWith('**')) {
-                                    return <p key={i} className="font-bold text-gray-800 my-2">{line.slice(2, -2)}</p>;
+                                    return <p key={i} className="font-bold text-gray-800 dark:text-gray-100 my-2">{line.slice(2, -2)}</p>;
                                 }
                                 if (line.trim() === '') {
                                     return <br key={i} />;
                                 }
-                                return <p key={i} className="text-gray-600 my-1">{line}</p>;
+                                return <p key={i} className="text-gray-600 dark:text-gray-300 my-1">{line}</p>;
                             })}
                         </div>
                     </div>
@@ -319,32 +319,32 @@ export default function Reports() {
 
             {/* Empty State */}
             {!report && !generating && !error && (
-                <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                         <FileText size={32} className="text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-700 mb-2">No Report Generated</h3>
+                    <h3 className="text-lg font-bold text-gray-700 dark:text-gray-200 mb-2">No Report Generated</h3>
                     <p className="text-gray-500">Select a report type above and click "Generate Report"</p>
                 </div>
             )}
 
             {/* Report History Section */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 mt-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">📚 Report History</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 p-6 mt-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">📚 Report History</h3>
 
                 {loadingHistory ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                         <Loader size={24} className="animate-spin mx-auto mb-2" />
                         Loading history...
                     </div>
                 ) : reportHistory.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                         No reports generated yet
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-gray-500 text-sm">
+                            <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 text-sm">
                                 <tr>
                                     <th className="p-3 rounded-tl-lg">Report ID</th>
                                     <th className="p-3">Type</th>
@@ -353,9 +353,9 @@ export default function Reports() {
                                     <th className="p-3 rounded-tr-lg text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                 {reportHistory.map((histReport) => (
-                                    <tr key={histReport.id} className="hover:bg-gray-50 transition">
+                                    <tr key={histReport.id} className="hover:bg-gray-50 dark:bg-gray-900 transition">
                                         <td className="p-3">
                                             <button
                                                 onClick={() => handleCopyReportId(histReport.report_id)}
@@ -372,19 +372,19 @@ export default function Reports() {
                                                 {reportTypes.find(t => t.id === histReport.report_type)?.name || histReport.report_type}
                                             </span>
                                         </td>
-                                        <td className="p-3 text-sm text-gray-600">
+                                        <td className="p-3 text-sm text-gray-600 dark:text-gray-300">
                                             {new Date(histReport.generated_at).toLocaleDateString()}
                                             {' '}
                                             {new Date(histReport.generated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </td>
-                                        <td className="p-3 text-sm text-gray-600">
+                                        <td className="p-3 text-sm text-gray-600 dark:text-gray-300">
                                             {histReport.project_count}
                                         </td>
                                         <td className="p-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => handleViewHistoryReport(histReport.report_id)}
-                                                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                                                    className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
                                                 >
                                                     View
                                                 </button>
@@ -408,14 +408,14 @@ export default function Reports() {
             {/* History Report Modal */}
             {selectedHistoryReport && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedHistoryReport(null)}>
-                    <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
                         {/* Modal Header */}
-                        <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                        <div className="p-6 border-b border-gray-100 bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
                             <div>
-                                <h3 className="font-bold text-lg text-gray-900">
+                                <h3 className="font-bold text-lg text-gray-900 dark:text-white">
                                     {reportTypes.find(t => t.id === selectedHistoryReport.report_type)?.name || 'Report'}
                                 </h3>
-                                <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
                                     <span className="flex items-center gap-1">
                                         <Calendar size={14} />
                                         {new Date(selectedHistoryReport.generated_at).toLocaleString()}
@@ -443,24 +443,24 @@ export default function Reports() {
                             <div className="prose prose-sm max-w-none">
                                 {selectedHistoryReport.content.split('\n').map((line, i) => {
                                     if (line.startsWith('# ')) {
-                                        return <h1 key={i} className="text-2xl font-black text-gray-900 mt-6 mb-4">{line.slice(2)}</h1>;
+                                        return <h1 key={i} className="text-2xl font-black text-gray-900 dark:text-white mt-6 mb-4">{line.slice(2)}</h1>;
                                     }
                                     if (line.startsWith('## ')) {
-                                        return <h2 key={i} className="text-xl font-bold text-gray-800 mt-5 mb-3 border-b pb-2">{line.slice(3)}</h2>;
+                                        return <h2 key={i} className="text-xl font-bold text-gray-800 dark:text-gray-100 mt-5 mb-3 border-b pb-2">{line.slice(3)}</h2>;
                                     }
                                     if (line.startsWith('### ')) {
-                                        return <h3 key={i} className="text-lg font-bold text-gray-700 mt-4 mb-2">{line.slice(4)}</h3>;
+                                        return <h3 key={i} className="text-lg font-bold text-gray-700 dark:text-gray-200 mt-4 mb-2">{line.slice(4)}</h3>;
                                     }
                                     if (line.startsWith('- ') || line.startsWith('* ')) {
-                                        return <li key={i} className="text-gray-600 ml-4">{line.slice(2)}</li>;
+                                        return <li key={i} className="text-gray-600 dark:text-gray-300 ml-4">{line.slice(2)}</li>;
                                     }
                                     if (line.startsWith('**') && line.endsWith('**')) {
-                                        return <p key={i} className="font-bold text-gray-800 my-2">{line.slice(2, -2)}</p>;
+                                        return <p key={i} className="font-bold text-gray-800 dark:text-gray-100 my-2">{line.slice(2, -2)}</p>;
                                     }
                                     if (line.trim() === '') {
                                         return <br key={i} />;
                                     }
-                                    return <p key={i} className="text-gray-600 my-1">{line}</p>;
+                                    return <p key={i} className="text-gray-600 dark:text-gray-300 my-1">{line}</p>;
                                 })}
                             </div>
                         </div>

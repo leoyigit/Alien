@@ -77,7 +77,7 @@ export default function Scanner() {
     <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
         <div className="animate-spin text-4xl mb-4">📡</div>
-        <div className="text-gray-500 font-medium">Scanning Slack channels...</div>
+        <div className="text-gray-500 dark:text-gray-400 font-medium">Scanning Slack channels...</div>
       </div>
     </div>
   );
@@ -96,8 +96,8 @@ export default function Scanner() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">📡 Channel Scanner</h1>
-          <p className="text-gray-500 mt-1">Map unmapped Slack channels to projects or partnerships</p>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">📡 Channel Scanner</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Map unmapped Slack channels to projects or partnerships</p>
         </div>
         <button
           onClick={fetchChannels}
@@ -111,40 +111,40 @@ export default function Scanner() {
       {/* SEARCH */}
       {channels.length > 0 && (
         <div className="mb-6 relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
           <input
             type="text"
             placeholder="Search channels..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
       )}
 
       {/* CHANNELS GRID */}
       {filteredChannels.length === 0 ? (
-        <div className="text-center py-16 bg-white border border-dashed border-gray-300 rounded-xl">
+        <div className="text-center py-16 bg-white dark:bg-gray-800 border border-dashed border-gray-300 rounded-xl">
           <Hash size={48} className="mx-auto mb-3 text-gray-300" />
-          <p className="font-medium text-gray-400 mb-1">
+          <p className="font-medium text-gray-400 dark:text-gray-500 mb-1">
             {searchTerm ? 'No channels found' : 'All channels are mapped! 🎉'}
           </p>
           {searchTerm && (
-            <p className="text-xs text-gray-400">Try a different search term</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Try a different search term</p>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filteredChannels.map((ch) => (
-            <div key={ch.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+            <div key={ch.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Hash size={18} className="text-gray-400" />
-                      <h3 className="font-bold text-lg text-gray-900">{ch.name}</h3>
+                      <h3 className="font-bold text-lg text-gray-900 dark:text-white">{ch.name}</h3>
                     </div>
-                    <p className="text-sm text-gray-500">{ch.members_count} members</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{ch.members_count} members</p>
                   </div>
                 </div>
 
@@ -157,7 +157,7 @@ export default function Scanner() {
                       </div>
                       <div className="flex-1">
                         <div className="text-xs font-bold text-blue-600 uppercase mb-0.5">AI Suggestion</div>
-                        <div className="font-bold text-gray-900">
+                        <div className="font-bold text-gray-900 dark:text-white">
                           {editingChannel === ch.id ? (
                             <input
                               type="text"
@@ -181,7 +181,7 @@ export default function Scanner() {
                             {ch.suggestion.role}
                           </span>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">Click name to edit</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Click name to edit</div>
                       </div>
                     </div>
 
@@ -203,7 +203,7 @@ export default function Scanner() {
                       </button>
                       <button
                         onClick={() => handleIgnore(ch.id, ch.name)}
-                        className="px-4 py-3 border border-gray-300 text-gray-600 rounded-lg hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition"
+                        className="px-4 py-3 border border-gray-300 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition"
                         title="Ignore this channel"
                       >
                         <X size={18} />
@@ -212,10 +212,10 @@ export default function Scanner() {
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-sm">No AI suggestion available</span>
+                    <span className="text-gray-400 dark:text-gray-500 text-sm">No AI suggestion available</span>
                     <button
                       onClick={() => handleIgnore(ch.id, ch.name)}
-                      className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition text-sm font-medium"
+                      className="px-4 py-2 border border-gray-300 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition text-sm font-medium"
                     >
                       Ignore
                     </button>

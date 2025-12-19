@@ -226,20 +226,20 @@ export default function ProjectDetails() {
     const backPath = location.state?.from || '/';
 
     return (
-        <div className="max-w-7xl mx-auto p-6 min-h-screen bg-gray-50 font-sans">
-            <Link to={backPath} className="flex items-center gap-2 text-gray-500 hover:text-black mb-6 font-medium text-sm">
+        <div className="max-w-7xl mx-auto p-6 min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+            <Link to={backPath} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-black mb-6 font-medium text-sm">
                 <ArrowLeft size={16} /> Back
             </Link>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 p-8">
                     <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h1 className="text-3xl font-black text-gray-900 mb-2">{project.client_name}</h1>
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                            <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">{project.client_name}</h1>
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                                 {/* PM - Inline Edit for superadmin/internal */}
                                 {canEditProject() ? (
-                                    <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-100 group hover:border-blue-300 transition">
+                                    <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded border border-gray-100 group hover:border-blue-300 transition">
                                         <User size={14} />
                                         <span className="text-gray-500">PM:</span>
                                         <select
@@ -266,17 +266,17 @@ export default function ProjectDetails() {
                                             <option value="">Unassigned</option>
                                             {teamMembers.filter(m => m.role === 'PM' || m.role === 'Both').map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                                         </select>
-                                        <ChevronDown size={12} className="text-gray-400 -ml-3" />
+                                        <ChevronDown size={12} className="text-gray-400 dark:text-gray-500 -ml-3" />
                                     </div>
                                 ) : (
-                                    <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                    <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded border border-gray-100">
                                         <User size={14} /> PM: <b>{project.owner || '-'}</b>
                                     </span>
                                 )}
 
                                 {/* Dev - Inline Edit for superadmin/internal */}
                                 {canEditProject() ? (
-                                    <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-100 group hover:border-blue-300 transition">
+                                    <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded border border-gray-100 group hover:border-blue-300 transition">
                                         <Code size={14} />
                                         <span className="text-gray-500">Dev:</span>
                                         <select
@@ -303,10 +303,10 @@ export default function ProjectDetails() {
                                             <option value="">Unassigned</option>
                                             {teamMembers.filter(m => m.role === 'Dev' || m.role === 'Both').map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                                         </select>
-                                        <ChevronDown size={12} className="text-gray-400 -ml-3" />
+                                        <ChevronDown size={12} className="text-gray-400 dark:text-gray-500 -ml-3" />
                                     </div>
                                 ) : (
-                                    <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                    <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded border border-gray-100">
                                         <Code size={14} /> Dev: <b>{getDevName(project.developer)}</b>
                                     </span>
                                 )}
@@ -336,7 +336,7 @@ export default function ProjectDetails() {
                             {statusDropdownOpen && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setStatusDropdownOpen(false)} />
-                                    <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 z-50 py-1">
+                                    <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 z-50 py-1">
                                         {['New / In Progress', 'Almost Ready', 'Ready', 'Launched', 'Stuck / On Hold'].map(cat => (
                                             <button
                                                 key={cat}
@@ -349,7 +349,7 @@ export default function ProjectDetails() {
                                                         setStatusDropdownOpen(false);
                                                     } catch (err) { showToast('Failed to update', 'error'); }
                                                 }}
-                                                className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-gray-50 ${project.category === cat ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+                                                className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-gray-50 dark:bg-gray-900 ${project.category === cat ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
                                             >
                                                 {cat}
                                             </button>
@@ -359,9 +359,9 @@ export default function ProjectDetails() {
                             )}
                         </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 border-t border-gray-100 pt-6">
+                    <div className="grid grid-cols-3 gap-4 border-t border-gray-100 dark:border-gray-700 pt-6">
                         <div className="overflow-hidden">
-                            <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">Live Domain</div>
+                            <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Live Domain</div>
                             {project.live_url ? (
                                 <a href={project.live_url.startsWith('http') ? project.live_url : `https://${project.live_url}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1 truncate">
                                     <span className="truncate">{project.live_url}</span> <ExternalLink size={10} className="flex-shrink-0" />
@@ -369,47 +369,47 @@ export default function ProjectDetails() {
                             ) : <span className="text-xs text-gray-300 italic">Not deployed</span>}
                         </div>
                         <div>
-                            <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">Launch (Internal)</div>
+                            <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Launch (Internal)</div>
                             <div className="font-mono text-sm">{project.launch_date_internal || "-"}</div>
                         </div>
                         <div>
-                            <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">Launch (Public)</div>
+                            <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Launch (Public)</div>
                             <div className="font-mono text-sm font-bold text-green-700">{project.launch_date_public || "-"}</div>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 flex flex-col justify-center">
-                    <h3 className="text-gray-500 font-bold text-xs uppercase mb-4 flex items-center gap-2">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 p-8 flex flex-col justify-center">
+                    <h3 className="text-gray-500 dark:text-gray-400 font-bold text-xs uppercase mb-4 flex items-center gap-2">
                         <CheckSquare size={14} /> Migration Progress
                     </h3>
                     <div className="flex items-end gap-2 mb-2">
-                        <span className="text-4xl font-black text-gray-900">{progress}%</span>
-                        <span className="text-gray-400 text-sm mb-1">completed</span>
+                        <span className="text-4xl font-black text-gray-900 dark:text-white">{progress}%</span>
+                        <span className="text-gray-400 dark:text-gray-500 text-sm mb-1">completed</span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                         <div className="bg-green-500 h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
                     </div>
-                    <div className="mt-4 text-xs text-gray-400">
+                    <div className="mt-4 text-xs text-gray-400 dark:text-gray-500">
                         {completedCount} of {totalCount} tasks done
                     </div>
                 </div>
             </div>
 
-            <div className="flex border-b border-gray-200 mb-6 bg-white px-4 rounded-t-xl overflow-x-auto">
-                <button onClick={() => setActiveTab('report')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'report' ? 'border-black' : 'border-transparent text-gray-400'}`}>Status & Checklist</button>
-                <button onClick={() => setActiveTab('info')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'info' ? 'border-black' : 'border-transparent text-gray-400'}`}>Metadata & Stakeholders</button>
-                <button onClick={() => setActiveTab('chat')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'chat' ? 'border-black' : 'border-transparent text-gray-400'}`}>
+            <div className="flex border-b border-gray-200 mb-6 bg-white dark:bg-gray-800 px-4 rounded-t-xl overflow-x-auto">
+                <button onClick={() => setActiveTab('report')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'report' ? 'border-black' : 'border-transparent text-gray-400 dark:text-gray-500'}`}>Status & Checklist</button>
+                <button onClick={() => setActiveTab('info')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'info' ? 'border-black' : 'border-transparent text-gray-400 dark:text-gray-500'}`}>Metadata & Stakeholders</button>
+                <button onClick={() => setActiveTab('chat')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'chat' ? 'border-black' : 'border-transparent text-gray-400 dark:text-gray-500'}`}>
                     Communication ({countsLoading ? '...' : messageCounts.internal + messageCounts.external + messageCounts.emails})
                 </button>
-                <button onClick={() => setActiveTab('settings')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'settings' ? 'border-black' : 'border-transparent text-gray-400'}`}>Project Settings</button>
+                <button onClick={() => setActiveTab('settings')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'settings' ? 'border-black' : 'border-transparent text-gray-400 dark:text-gray-500'}`}>Project Settings</button>
             </div>
 
             {activeTab === 'report' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 shadow-sm">
                             <h3 className="font-bold text-lg mb-4">Latest Notes</h3>
-                            <textarea className="w-full border border-gray-300 rounded-lg p-3 h-32 focus:ring-2 focus:ring-black outline-none text-sm" value={formData.status_detail} onChange={e => setFormData({ ...formData, status_detail: e.target.value })} />
+                            <textarea className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 h-32 focus:ring-2 focus:ring-black outline-none text-sm" value={formData.status_detail} onChange={e => setFormData({ ...formData, status_detail: e.target.value })} />
                             <div className="grid grid-cols-2 gap-4 mt-4">
                                 <div className="bg-red-50 p-4 rounded-lg border border-red-100 mt-4">
                                     <label className="block text-xs font-bold text-red-600 uppercase mb-2 flex items-center gap-2"><AlertCircle size={14} /> Blockers</label>
@@ -420,7 +420,7 @@ export default function ProjectDetails() {
                                                 onClick={() => toggleBlockerCat(opt)}
                                                 className={`px-3 py-1.5 rounded text-xs font-bold border transition ${formData.blocker_cats?.includes(opt)
                                                     ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                                                    : 'bg-white text-gray-600 border-red-200 hover:bg-red-100'
+                                                    : 'bg-white dark:bg-gray-800 text-gray-600 border-red-200 hover:bg-red-100'
                                                     }`}
                                             >
                                                 {opt}
@@ -428,28 +428,28 @@ export default function ProjectDetails() {
                                         ))}
                                     </div>
                                     <textarea
-                                        className="w-full border border-red-200 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-red-500 outline-none bg-white min-h-[60px]"
+                                        className="w-full border border-red-200 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-gray-800 min-h-[60px]"
                                         value={formData.blocker_desc}
                                         onChange={e => setFormData({ ...formData, blocker_desc: e.target.value })}
                                         placeholder="Explain the blocker..."
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mt-4">
-                                    <div><label className="text-xs font-bold text-gray-500 uppercase">Next Call</label><input type="date" className="w-full border border-gray-300 rounded p-2 text-sm" value={formData.next_call} onChange={e => setFormData({ ...formData, next_call: e.target.value })} /></div>
+                                    <div><label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Next Call</label><input type="date" className="w-full border border-gray-300 rounded p-2 text-sm" value={formData.next_call} onChange={e => setFormData({ ...formData, next_call: e.target.value })} /></div>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 shadow-sm">
                             <h3 className="font-bold text-lg mb-6">Migration Checklist</h3>
                             <div className="space-y-8">
                                 {Object.entries(CHECKLIST_GROUPS).map(([groupName, items]) => (
                                     <div key={groupName}>
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase border-b border-gray-100 pb-2 mb-3 tracking-wider">{groupName}</h4>
+                                        <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase border-b border-gray-100 pb-2 mb-3 tracking-wider">{groupName}</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
                                             {items.map(key => (
-                                                <label key={key} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer transition group">
-                                                    <input type="checkbox" checked={checklist[key] || false} onChange={() => toggleChecklist(key)} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300" />
-                                                    <span className={`text-sm transition-colors ${checklist[key] ? 'text-gray-400 line-through' : 'text-gray-700 font-medium'}`}>{key}</span>
+                                                <label key={key} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:bg-gray-900 rounded cursor-pointer transition group">
+                                                    <input type="checkbox" checked={checklist[key] || false} onChange={() => toggleChecklist(key)} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300 dark:border-gray-600" />
+                                                    <span className={`text-sm transition-colors ${checklist[key] ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-200 font-medium'}`}>{key}</span>
                                                 </label>
                                             ))}
                                         </div>
@@ -460,9 +460,9 @@ export default function ProjectDetails() {
                         <button onClick={handleSaveReport} className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 flex justify-center gap-2 shadow-lg transition"><Save size={18} /> Save All Changes</button>
                     </div>
                     <div>
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm sticky top-6">
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 shadow-sm sticky top-6">
                             <h3 className="font-bold mb-4 flex items-center gap-2"><Clock size={16} /> Audit Log</h3>
-                            <div className="space-y-6 pl-4 border-l-2 border-gray-100">
+                            <div className="space-y-6 pl-4 border-l-2 border-gray-100 dark:border-gray-700">
                                 {project.history?.slice(0, 5).map((h, i) => {
                                     const date = new Date(h.timestamp);
                                     const now = new Date();
@@ -479,7 +479,7 @@ export default function ProjectDetails() {
 
                                     return (
                                         <div key={i} className="relative">
-                                            <div className="text-[10px] text-gray-400 mb-1">
+                                            <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">
                                                 {date.toLocaleDateString()} · <span className="text-gray-500">{relTime}</span>
                                             </div>
                                             {Object.keys(h.changes).map(k => (
@@ -496,24 +496,24 @@ export default function ProjectDetails() {
 
             {activeTab === 'info' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 shadow-sm">
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Globe size={18} /> Project Links</h3>
                         <div className="space-y-4">
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Live Domain</label><input className="w-full border border-gray-300 rounded p-2 text-sm" value={formData.live_url} onChange={e => setFormData({ ...formData, live_url: e.target.value })} placeholder="https://..." /></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Shopify URL</label><input className="w-full border border-gray-300 rounded p-2 text-sm" value={formData.shopify_url} onChange={e => setFormData({ ...formData, shopify_url: e.target.value })} /></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Shopline URL</label><input className="w-full border border-gray-300 rounded p-2 text-sm text-blue-600 font-medium" value={formData.shopline_url} onChange={e => setFormData({ ...formData, shopline_url: e.target.value })} /></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Shopline Preview Pass</label><div className="flex items-center gap-2"><Key size={14} className="text-gray-400" /><input className="w-full border border-gray-300 rounded p-2 text-sm font-mono" value={formData.shopline_preview_pass} onChange={e => setFormData({ ...formData, shopline_preview_pass: e.target.value })} /></div></div>
+                            <div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Live Domain</label><input className="w-full border border-gray-300 rounded p-2 text-sm" value={formData.live_url} onChange={e => setFormData({ ...formData, live_url: e.target.value })} placeholder="https://..." /></div>
+                            <div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Shopify URL</label><input className="w-full border border-gray-300 rounded p-2 text-sm" value={formData.shopify_url} onChange={e => setFormData({ ...formData, shopify_url: e.target.value })} /></div>
+                            <div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Shopline URL</label><input className="w-full border border-gray-300 rounded p-2 text-sm text-blue-600 font-medium" value={formData.shopline_url} onChange={e => setFormData({ ...formData, shopline_url: e.target.value })} /></div>
+                            <div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Shopline Preview Pass</label><div className="flex items-center gap-2"><Key size={14} className="text-gray-400" /><input className="w-full border border-gray-300 rounded p-2 text-sm font-mono" value={formData.shopline_preview_pass} onChange={e => setFormData({ ...formData, shopline_preview_pass: e.target.value })} /></div></div>
                             <div className="grid grid-cols-2 gap-4 pt-2">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">PM (Owner)</label>
-                                    <select className="w-full border border-gray-300 rounded p-2 text-sm outline-none bg-white" value={formData.owner} onChange={e => setFormData({ ...formData, owner: e.target.value })}>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">PM (Owner)</label>
+                                    <select className="w-full border border-gray-300 rounded p-2 text-sm outline-none bg-white dark:bg-gray-800" value={formData.owner} onChange={e => setFormData({ ...formData, owner: e.target.value })}>
                                         <option value="">Unassigned</option>
                                         {teamMembers.filter(m => m.role === 'PM' || m.role === 'Both').map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Developer</label>
-                                    <select className="w-full border border-gray-300 rounded p-2 text-sm outline-none bg-white" value={formData.developer} onChange={e => setFormData({ ...formData, developer: e.target.value })}>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Developer</label>
+                                    <select className="w-full border border-gray-300 rounded p-2 text-sm outline-none bg-white dark:bg-gray-800" value={formData.developer} onChange={e => setFormData({ ...formData, developer: e.target.value })}>
                                         <option value="">Unassigned</option>
                                         {teamMembers.filter(m => m.role === 'Dev' || m.role === 'Both').map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                                     </select>
@@ -523,63 +523,63 @@ export default function ProjectDetails() {
                     </div>
 
                     {/* Slack Channels Section */}
-                    <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 shadow-sm">
                         <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Hash size={18} /> Slack Channels</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Internal Channel ID</label>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Internal Channel ID</label>
                                 <input
-                                    className="w-full border border-gray-300 rounded p-2 text-sm font-mono"
+                                    className="w-full border border-gray-300 dark:border-gray-600 rounded p-2 text-sm font-mono"
                                     value={formData.channel_id_internal}
                                     onChange={e => setFormData({ ...formData, channel_id_internal: e.target.value })}
                                     placeholder="C0123456789"
                                 />
-                                <p className="text-[10px] text-gray-400 mt-1">Find in Slack: Right-click channel → View channel details → Copy channel ID</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Find in Slack: Right-click channel → View channel details → Copy channel ID</p>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">External Channel ID</label>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">External Channel ID</label>
                                 <input
-                                    className="w-full border border-gray-300 rounded p-2 text-sm font-mono"
+                                    className="w-full border border-gray-300 dark:border-gray-600 rounded p-2 text-sm font-mono"
                                     value={formData.channel_id_external}
                                     onChange={e => setFormData({ ...formData, channel_id_external: e.target.value })}
                                     placeholder="C0123456789"
                                 />
-                                <p className="text-[10px] text-gray-400 mt-1">For private/connect channels not visible in Scanner</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">For private/connect channels not visible in Scanner</p>
                             </div>
-                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 mt-4">
-                                <div className="text-[10px] uppercase font-bold text-gray-400 mb-2">Current Status</div>
+                            <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-100 mt-4">
+                                <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-2">Current Status</div>
                                 <div className="flex gap-4 text-xs">
-                                    <span className={`flex items-center gap-1 ${formData.channel_id_internal ? 'text-green-600' : 'text-gray-400'}`}>
+                                    <span className={`flex items-center gap-1 ${formData.channel_id_internal ? 'text-green-600' : 'text-gray-400 dark:text-gray-500'}`}>
                                         <Hash size={12} /> Internal: {formData.channel_id_internal ? '✓ Connected' : '✗ Not set'}
                                     </span>
-                                    <span className={`flex items-center gap-1 ${formData.channel_id_external ? 'text-green-600' : 'text-gray-400'}`}>
+                                    <span className={`flex items-center gap-1 ${formData.channel_id_external ? 'text-green-600' : 'text-gray-400 dark:text-gray-500'}`}>
                                         <Hash size={12} /> External: {formData.channel_id_external ? '✓ Connected' : '✗ Not set'}
                                     </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-lg flex items-center gap-2"><Users size={18} /> Stakeholders</h3>
                             <button onClick={addStakeholder} className="text-xs font-bold flex items-center gap-1 bg-black text-white px-3 py-1.5 rounded hover:bg-gray-800"><Plus size={12} /> Add</button>
                         </div>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                             {stakeholders.map((person, index) => (
-                                <div key={index} className="bg-gray-50 p-3 rounded border border-gray-100 space-y-2">
+                                <div key={index} className="bg-gray-50 dark:bg-gray-900 p-3 rounded border border-gray-100 space-y-2">
                                     {/* First Row - Name/Dropdown + Role */}
                                     <div className="flex items-center gap-2">
                                         <div className="flex-1 min-w-0">
                                             {person.isManual ? (
                                                 <input
                                                     placeholder="Name"
-                                                    className="w-full bg-white text-sm font-bold outline-none border border-gray-200 rounded px-2 py-1.5"
+                                                    className="w-full bg-white dark:bg-gray-800 text-sm font-bold outline-none border border-gray-200 rounded px-2 py-1.5"
                                                     value={person.name}
                                                     onChange={(e) => updateStakeholder(index, 'name', e.target.value)}
                                                 />
                                             ) : (
                                                 <select
-                                                    className="w-full bg-white text-sm font-bold outline-none border border-gray-200 rounded px-2 py-1.5"
+                                                    className="w-full bg-white dark:bg-gray-800 text-sm font-bold outline-none border border-gray-200 rounded px-2 py-1.5"
                                                     value={person.name}
                                                     onChange={(e) => updateStakeholder(index, 'name', e.target.value)}
                                                 >
@@ -589,7 +589,7 @@ export default function ProjectDetails() {
                                             )}
                                         </div>
                                         <select
-                                            className="bg-white text-xs border border-gray-200 rounded px-2 py-1.5 outline-none"
+                                            className="bg-white dark:bg-gray-800 text-xs border border-gray-200 rounded px-2 py-1.5 outline-none"
                                             value={person.role}
                                             onChange={(e) => updateStakeholder(index, 'role', e.target.value)}
                                         >
@@ -600,30 +600,30 @@ export default function ProjectDetails() {
                                         </select>
                                         <button
                                             onClick={() => toggleManualEntry(index)}
-                                            className="text-gray-400 hover:text-blue-600 text-xs whitespace-nowrap px-1"
+                                            className="text-gray-400 dark:text-gray-500 hover:text-blue-600 text-xs whitespace-nowrap px-1"
                                             title={person.isManual ? "Switch to dropdown" : "Manual entry"}
                                         >
                                             {person.isManual ? '🔽' : '✏️'}
                                         </button>
-                                        <button onClick={() => removeStakeholder(index)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                                        <button onClick={() => removeStakeholder(index)} className="text-gray-400 dark:text-gray-500 hover:text-red-500"><Trash2 size={14} /></button>
                                     </div>
                                     {/* Second Row - Alias + Title + Email */}
                                     <div className="flex items-center gap-2">
                                         <input
                                             placeholder="Alias (optional)"
-                                            className="flex-1 min-w-0 bg-white text-xs outline-none border border-gray-200 rounded px-2 py-1.5"
+                                            className="flex-1 min-w-0 bg-white dark:bg-gray-800 text-xs outline-none border border-gray-200 rounded px-2 py-1.5"
                                             value={person.alias || ''}
                                             onChange={(e) => updateStakeholder(index, 'alias', e.target.value)}
                                         />
                                         <input
                                             placeholder="Title (CEO, CTO...)"
-                                            className="flex-1 min-w-0 bg-white text-xs outline-none border border-gray-200 rounded px-2 py-1.5"
+                                            className="flex-1 min-w-0 bg-white dark:bg-gray-800 text-xs outline-none border border-gray-200 rounded px-2 py-1.5"
                                             value={person.title || ''}
                                             onChange={(e) => updateStakeholder(index, 'title', e.target.value)}
                                         />
                                         <input
                                             placeholder="email"
-                                            className="flex-1 min-w-0 bg-white text-xs outline-none border border-gray-200 rounded px-2 py-1.5"
+                                            className="flex-1 min-w-0 bg-white dark:bg-gray-800 text-xs outline-none border border-gray-200 rounded px-2 py-1.5"
                                             value={person.email}
                                             onChange={(e) => updateStakeholder(index, 'email', e.target.value)}
                                         />
@@ -631,55 +631,55 @@ export default function ProjectDetails() {
                                 </div>
                             ))}
                             {stakeholders.length === 0 && (
-                                <p className="text-sm text-gray-400 text-center py-4">No stakeholders added yet</p>
+                                <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No stakeholders added yet</p>
                             )}
                         </div>
                     </div>
-                    <div className="col-span-1 md:col-span-2 pt-4 border-t border-gray-100 text-right"><button onClick={handleSaveReport} className="bg-black text-white px-8 py-3 rounded-lg font-bold hover:bg-gray-800 inline-flex items-center gap-2 shadow-lg transition"><Save size={18} /> Save Metadata</button></div>
+                    <div className="col-span-1 md:col-span-2 pt-4 border-t border-gray-100 dark:border-gray-700 text-right"><button onClick={handleSaveReport} className="bg-black text-white px-8 py-3 rounded-lg font-bold hover:bg-gray-800 inline-flex items-center gap-2 shadow-lg transition"><Save size={18} /> Save Metadata</button></div>
                 </div>
             )
             }
 
             {
                 activeTab === 'settings' && (
-                    <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm max-w-4xl">
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-200 shadow-sm max-w-4xl">
                         <h2 className="text-2xl font-bold mb-6">Project Settings</h2>
 
                         <div className="space-y-6">
                             {/* Slack Channels Section */}
-                            <div className="border-b border-gray-100 pb-6">
+                            <div className="border-b border-gray-100 dark:border-gray-700 pb-6">
                                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                                     <Hash size={18} /> Slack Channels
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Internal Channel ID</label>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Internal Channel ID</label>
                                         <input
-                                            className="w-full border border-gray-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-black outline-none"
+                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-black outline-none"
                                             value={formData.channel_id_internal || ''}
                                             onChange={e => setFormData({ ...formData, channel_id_internal: e.target.value })}
                                             placeholder="C0123456789"
                                         />
-                                        <p className="text-[10px] text-gray-400 mt-1">Find in Slack: Right-click channel → View channel details → Copy channel ID</p>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Find in Slack: Right-click channel → View channel details → Copy channel ID</p>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">External Channel ID</label>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">External Channel ID</label>
                                         <input
-                                            className="w-full border border-gray-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-black outline-none"
+                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-black outline-none"
                                             value={formData.channel_id_external || ''}
                                             onChange={e => setFormData({ ...formData, channel_id_external: e.target.value })}
                                             placeholder="C0123456789"
                                         />
-                                        <p className="text-[10px] text-gray-400 mt-1">For private/connect channels not visible in Scanner</p>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">For private/connect channels not visible in Scanner</p>
                                     </div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 mt-4">
-                                    <div className="text-[10px] uppercase font-bold text-gray-400 mb-2">Current Status</div>
+                                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-100 mt-4">
+                                    <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-2">Current Status</div>
                                     <div className="flex gap-4 text-xs">
-                                        <span className={`flex items-center gap-1 ${formData.channel_id_internal ? 'text-green-600' : 'text-gray-400'}`}>
+                                        <span className={`flex items-center gap-1 ${formData.channel_id_internal ? 'text-green-600' : 'text-gray-400 dark:text-gray-500'}`}>
                                             <Hash size={12} /> Internal: {formData.channel_id_internal ? '✓ Connected' : '✗ Not set'}
                                         </span>
-                                        <span className={`flex items-center gap-1 ${formData.channel_id_external ? 'text-green-600' : 'text-gray-400'}`}>
+                                        <span className={`flex items-center gap-1 ${formData.channel_id_external ? 'text-green-600' : 'text-gray-400 dark:text-gray-500'}`}>
                                             <Hash size={12} /> External: {formData.channel_id_external ? '✓ Connected' : '✗ Not set'}
                                         </span>
                                     </div>
@@ -693,30 +693,30 @@ export default function ProjectDetails() {
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Launch Date (Internal)</label>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Launch Date (Internal)</label>
                                         <input
                                             type="date"
-                                            className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-black outline-none"
+                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-black outline-none"
                                             value={formData.launch_date_internal || ''}
                                             onChange={e => setFormData({ ...formData, launch_date_internal: e.target.value })}
                                         />
-                                        <p className="text-[10px] text-gray-400 mt-1">When internal team can access the site</p>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">When internal team can access the site</p>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Go Live Date (Public)</label>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Go Live Date (Public)</label>
                                         <input
                                             type="date"
-                                            className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-green-500 outline-none"
                                             value={formData.launch_date_public || ''}
                                             onChange={e => setFormData({ ...formData, launch_date_public: e.target.value })}
                                         />
-                                        <p className="text-[10px] text-gray-400 mt-1">Public launch date</p>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Public launch date</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Save Button */}
-                            <div className="pt-4 border-t border-gray-100 flex justify-end">
+                            <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
                                 <button
                                     onClick={handleSaveReport}
                                     className="bg-black text-white px-8 py-3 rounded-lg font-bold hover:bg-gray-800 inline-flex items-center gap-2 shadow-lg transition"
@@ -734,12 +734,12 @@ export default function ProjectDetails() {
                     <div className="max-w-3xl mx-auto">
                         {/* Internal / External / Emails Tab Selector */}
                         <div className="flex justify-center mb-6">
-                            <div className="flex bg-gray-100 p-1 rounded-xl">
+                            <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-xl">
                                 {/* Internal tab - only visible to internal team */}
                                 {canViewInternalChannel() && (
                                     <button
                                         onClick={() => setVisibilityTab('internal')}
-                                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${visibilityTab === 'internal' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${visibilityTab === 'internal' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                     >
                                         <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                                         Internal {messageCounts.internal > 0 && `(${messageCounts.internal})`}
@@ -747,14 +747,14 @@ export default function ProjectDetails() {
                                 )}
                                 <button
                                     onClick={() => setVisibilityTab('external')}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${visibilityTab === 'external' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${visibilityTab === 'external' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
                                     External {messageCounts.external > 0 && `(${messageCounts.external})`}
                                 </button>
                                 <button
                                     onClick={() => setVisibilityTab('emails')}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${visibilityTab === 'emails' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition ${visibilityTab === 'emails' ? 'bg-white dark:bg-gray-800 text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     <Mail size={16} />
                                     Emails {messageCounts.emails > 0 && `(${messageCounts.emails})`}
@@ -765,9 +765,9 @@ export default function ProjectDetails() {
                         {/* Messages */}
                         <div className="space-y-4">
                             {logsLoading ? (
-                                <div className="text-center py-10 text-gray-400 font-mono text-sm animate-pulse">Loading messages...</div>
+                                <div className="text-center py-10 text-gray-400 dark:text-gray-500 font-mono text-sm animate-pulse">Loading messages...</div>
                             ) : logs.length === 0 ? (
-                                <div className="text-center py-16 bg-white border border-dashed border-gray-300 rounded-xl text-gray-400">
+                                <div className="text-center py-16 bg-white dark:bg-gray-800 border border-dashed border-gray-300 rounded-xl text-gray-400">
                                     <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
                                     <p className="font-medium mb-1">No {visibilityTab} messages found.</p>
                                     <p className="text-xs mb-4">Sync from Slack to load conversation history.</p>
@@ -802,14 +802,14 @@ export default function ProjectDetails() {
                                 logs.map(log => {
                                     const isReply = log.thread_ts && log.thread_ts !== log.slack_ts;
                                     return (
-                                        <div key={log.id} className={`bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex gap-4 ${isReply ? 'ml-12 border-l-4 border-l-gray-300' : ''}`}>
+                                        <div key={log.id} className={`bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 shadow-sm flex gap-4 ${isReply ? 'ml-12 border-l-4 border-l-gray-300' : ''}`}>
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border shrink-0 ${visibilityTab === 'internal' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-green-50 text-green-600 border-green-100'}`}>{log.sender_name?.charAt(0) || '?'}</div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-baseline">
-                                                    <div className="font-bold text-gray-900">{log.sender_name}</div>
-                                                    <div className="text-[10px] text-gray-400 font-mono">{new Date(log.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                                                    <div className="font-bold text-gray-900 dark:text-white">{log.sender_name}</div>
+                                                    <div className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">{new Date(log.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                                                 </div>
-                                                <div className="text-sm text-gray-600 mt-1 whitespace-pre-wrap break-words leading-relaxed">{formatMessage(log.content)}</div>
+                                                <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap break-words leading-relaxed">{formatMessage(log.content)}</div>
                                             </div>
                                         </div>
                                     );

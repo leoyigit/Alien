@@ -58,11 +58,11 @@ export default function AiChat({ userRole }) {
 
             {/* Chat Panel */}
             {isOpen && (
-                <div className="fixed bottom-6 right-6 w-[380px] h-[520px] bg-gray-900 rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-700 overflow-hidden">
+                <div className="fixed bottom-6 right-6 w-[380px] h-[520px] bg-gray-900 dark:bg-black rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-700 overflow-hidden">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-white dark:bg-gray-800/20 rounded-full flex items-center justify-center">
                                 <Bot size={18} className="text-white" />
                             </div>
                             <div>
@@ -92,7 +92,7 @@ export default function AiChat({ userRole }) {
                                 <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center shrink-0">
                                     <Bot size={14} className="text-white" />
                                 </div>
-                                <div className="bg-gray-800 text-gray-400 px-3 py-2 rounded-xl rounded-bl-sm text-sm">
+                                <div className="bg-gray-800 text-gray-400 dark:text-gray-500 px-3 py-2 rounded-xl rounded-bl-sm text-sm">
                                     <span className="animate-pulse">Thinking...</span>
                                 </div>
                             </div>
