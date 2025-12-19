@@ -260,7 +260,7 @@ def get_projects():
         print(f"Projects API Error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({\"error\": str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 @api.route('/projects/<project_id>/update-report', methods=['POST'])
 def update_project_report(project_id):
