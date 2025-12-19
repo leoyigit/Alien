@@ -7,6 +7,7 @@ load_dotenv()
 class Settings:
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") # Required for bypassing RLS
     SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 

@@ -47,6 +47,14 @@ export function AuthProvider({ children }) {
 
             if (res.data.success) {
                 const { access_token, refresh_token } = res.data.session;
+
+                if (!res.data.user.profile) {
+                    return {
+                        success: false,
+                        error: 'Account exists but has no profile. I attempted to self-heal it but it failed (likely missing SUPABASE_SERVICE_ROLE_KEY in .env). Please check backend logs or Sign Up with a NEW email.'
+                    };
+                }
+
                 localStorage.setItem('access_token', access_token);
                 localStorage.setItem('refresh_token', refresh_token);
                 api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;

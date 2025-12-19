@@ -5,7 +5,7 @@ Handles login, logout, user profile, and user management.
 """
 from flask import Blueprint, jsonify, request, g
 from functools import wraps
-from app.core.supabase import db
+from app.core.supabase import db, admin_db
 from app.core.config import settings
 import os
 
@@ -85,15 +85,57 @@ def login():
         if not response.user:
             return jsonify({"error": "Invalid credentials"}), 401
         
-        # Get user profile
-        profile = db.table("portal_users").select("*").eq("id", response.user.id).execute()
+        # Get user profile - Use admin_db to bypass RLS during login flow
+        profile = admin_db.table("portal_users").select("*").eq("id", response.user.id).execute()
         
+        profile_data = None
+        if profile.data:
+            profile_data = profile.data[0]
+        else:
+            # Self-healing: Create missing profile
+            try:
+                if not settings.SUPABASE_SERVICE_ROLE_KEY:
+                    print("⚠️ SUPABASE_SERVICE_ROLE_KEY is missing! Self-healing will fail due to RLS.")
+                    raise ValueError("Service role key missing")
+
+                email = response.user.email
+                role = 'merchant'
+                if '@flyrank.com' in email or '@powercommerce.com' in email:
+                    role = 'internal'
+                elif '@shopline.com' in email:
+                    role = 'shopline'
+                
+                new_profile = {
+                    "id": response.user.id,
+                    "email": email,
+                    "role": role,
+                    "display_name": email.split('@')[0]
+                }
+                # Use admin_db to bypass RLS policies
+                admin_db.table("portal_users").insert(new_profile).execute()
+                profile_data = new_profile
+                print(f"Self-healed missing profile for {email}")
+            except Exception as e:
+                error_msg = str(e)
+                print(f"Failed to self-heal profile: {error_msg}")
+                
+                # If it's a duplicate key, it means the profile actually exists now
+                # BUT we need to fetch it with admin_db to see it!
+                if "23505" in error_msg or "duplicate key" in error_msg.lower():
+                    retry_profile = admin_db.table("portal_users").select("*").eq("id", response.user.id).execute()
+                    if retry_profile.data:
+                        profile_data = retry_profile.data[0]
+                        print(f"Recovered profile after duplicate check for {email}")
+
+                if "42501" in error_msg or "row-level security" in error_msg.lower():
+                    print("❌ RLS ERROR: The Service Role Key provided does not have bypass permissions OR is actually just the Anon key.")
+
         return jsonify({
             "success": True,
             "user": {
                 "id": response.user.id,
                 "email": response.user.email,
-                "profile": profile.data[0] if profile.data else None
+                "profile": profile_data
             },
             "session": {
                 "access_token": response.session.access_token,
