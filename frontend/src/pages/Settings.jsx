@@ -51,9 +51,12 @@ export default function Settings() {
         setLoading(true);
         try {
             const res = await api.get('/auth/users');
+            console.log('Users API Response:', res.data);
+            console.log('Number of users:', res.data?.length);
             setUsers(res.data);
         } catch (e) {
             console.error('Failed to fetch users:', e);
+            console.error('Error response:', e.response?.data);
         } finally {
             setLoading(false);
         }
