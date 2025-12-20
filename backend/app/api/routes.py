@@ -1,11 +1,12 @@
 # backend/app/api/routes.py
 import re
 from datetime import datetime
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from app.core.config import settings
 from app.core.supabase import db
+from app.api.auth import require_auth
 
 # Initialize Blueprint and Slack Client
 api = Blueprint('api', __name__)
@@ -355,11 +356,32 @@ def get_mapped_channels():
 # ---------------------------------------------------------
 
 @api.route('/projects', methods=['GET'])
+@require_auth
 def get_projects():
     try:
-        # 1. Fetch all projects (now includes comm_count_* fields from migration 004)
-        # Exclude partnerships - they have their own page
-        projects = db.table("projects").select("*").eq("is_partnership", False).order("client_name").execute().data
+        user = g.user
+        user_role = user.get('role')
+        
+        # 1. Fetch projects based on role
+        if user_role in ['superadmin', 'internal', 'shopline']:
+            # Show all projects (exclude partnerships)
+            projects = db.table("projects").select("*").eq("is_partnership", False).order("client_name").execute().data
+        elif user_role == 'merchant':
+            # Show only assigned projects
+            assigned_projects = user.get('assigned_projects', [])
+            if not assigned_projects:
+                return jsonify([])  # No projects assigned
+            
+            # Fetch only assigned projects, exclude archived
+            projects = db.table("projects") \
+                .select("*") \
+                .in_("id", assigned_projects) \
+                .eq("is_partnership", False) \
+                .neq("status", "archived") \
+                .order("client_name") \
+                .execute().data
+        else:
+            return jsonify([])  # Unknown role
         
         dashboard_data = []
         
@@ -626,9 +648,17 @@ def sync_history():
         return jsonify({"error": str(e)}), 500
 
 @api.route('/projects/<project_id>/logs', methods=['GET'])
+@require_auth
 def get_project_logs(project_id):
     try:
-        visibility = request.args.get("visibility", "internal") # Default to internal
+        user = g.user
+        user_role = user.get('role')
+        
+        # Merchants can only see external communications
+        if user_role == 'merchant':
+            visibility = "external"
+        else:
+            visibility = request.args.get("visibility", "internal")  # Default to internal
 
         # Fetch logs, newest first
         res = db.table("communication_logs") \

@@ -73,6 +73,33 @@ def create_contact():
             ]
             db.table('contact_projects').insert(associations).execute()
         
+        # Auto-assign merchant users to projects
+        if contact.get('email') and project_ids:
+            try:
+                from app.core.supabase import admin_db
+                # Check if this email belongs to a merchant user
+                user_result = admin_db.table("portal_users")\
+                    .select("id, role, assigned_projects")\
+                    .eq("email", contact['email'])\
+                    .eq("role", "merchant")\
+                    .execute()
+                
+                if user_result.data:
+                    merchant_user = user_result.data[0]
+                    current_projects = merchant_user.get('assigned_projects') or []
+                    
+                    # Add new project IDs to assigned projects
+                    updated_projects = list(set(current_projects + project_ids))
+                    
+                    admin_db.table("portal_users").update({
+                        "assigned_projects": updated_projects
+                    }).eq("id", merchant_user['id']).execute()
+                    
+                    print(f"✅ Auto-assigned merchant {contact['email']} to {len(project_ids)} project(s)")
+            except Exception as e:
+                print(f"⚠️ Auto-assignment failed: {e}")
+                # Don't fail the contact creation if auto-assignment fails
+        
         contact['project_ids'] = project_ids
         return jsonify(contact), 201
     except Exception as e:
@@ -102,6 +129,13 @@ def update_contact(contact_id):
         
         # Handle project associations
         if 'project_ids' in data:
+            # Get old project IDs before updating
+            old_assoc_result = db.table('contact_projects')\
+                .select('project_id')\
+                .eq('contact_id', contact_id)\
+                .execute()
+            old_project_ids = [a['project_id'] for a in old_assoc_result.data]
+            
             # Delete existing associations
             db.table('contact_projects').delete().eq('contact_id', contact_id).execute()
             
@@ -113,6 +147,36 @@ def update_contact(contact_id):
                     for pid in project_ids
                 ]
                 db.table('contact_projects').insert(associations).execute()
+            
+            # Auto-update merchant user assignments
+            contact_result = db.table('contacts').select('email').eq('id', contact_id).single().execute()
+            contact_email = contact_result.data.get('email')
+            
+            if contact_email:
+                try:
+                    from app.core.supabase import admin_db
+                    # Check if this email belongs to a merchant user
+                    user_result = admin_db.table("portal_users")\
+                        .select("id, role, assigned_projects")\
+                        .eq("email", contact_email)\
+                        .eq("role", "merchant")\
+                        .execute()
+                    
+                    if user_result.data:
+                        merchant_user = user_result.data[0]
+                        current_projects = merchant_user.get('assigned_projects') or []
+                        
+                        # Remove old project IDs and add new ones
+                        updated_projects = [p for p in current_projects if p not in old_project_ids]
+                        updated_projects = list(set(updated_projects + project_ids))
+                        
+                        admin_db.table("portal_users").update({
+                            "assigned_projects": updated_projects
+                        }).eq("id", merchant_user['id']).execute()
+                        
+                        print(f"✅ Updated merchant {contact_email} project assignments")
+                except Exception as e:
+                    print(f"⚠️ Auto-assignment update failed: {e}")
         
         # Fetch updated contact
         contact_result = db.table('contacts').select('*').eq('id', contact_id).single().execute()

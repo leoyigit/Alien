@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
     Settings as SettingsIcon, Key, Users, Shield, Save, Trash2,
-    Check, X, Eye, EyeOff, RefreshCw, Loader, AlertCircle, Zap, UserPlus, UserCog
+    Check, X, Eye, EyeOff, RefreshCw, Loader, AlertCircle, Zap, UserPlus, UserCog, Mail
 } from 'lucide-react';
 
 export default function Settings() {
@@ -21,6 +21,8 @@ export default function Settings() {
     const [message, setMessage] = useState(null);
     const [newMemberName, setNewMemberName] = useState('');
     const [newMemberRole, setNewMemberRole] = useState('Both');
+    const [showProjectDropdown, setShowProjectDropdown] = useState(null); // userId when dropdown is open
+    const [allProjects, setAllProjects] = useState([]);
 
     useEffect(() => {
         if (activeTab === 'integrations') {
@@ -190,6 +192,61 @@ export default function Settings() {
             setSaving(null);
         }
     };
+
+    const handleSendPasswordReset = async (userId, userEmail) => {
+        setSaving(userId);
+        try {
+            await api.post(`/auth/users/${userId}/reset-password`);
+            setMessage({ type: 'success', text: `Password reset email sent to ${userEmail}` });
+        } catch (e) {
+            setMessage({ type: 'error', text: e.response?.data?.error || 'Failed to send reset email' });
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    const handleToggleProjectDropdown = async (userId) => {
+        if (showProjectDropdown === userId) {
+            setShowProjectDropdown(null);
+        } else {
+            setShowProjectDropdown(userId);
+            // Fetch all projects if not already loaded
+            if (allProjects.length === 0) {
+                try {
+                    const res = await api.get('/auth/projects/all');
+                    setAllProjects(res.data);
+                } catch (e) {
+                    console.error('Failed to fetch projects:', e);
+                    setMessage({ type: 'error', text: 'Failed to load projects' });
+                }
+            }
+        }
+    };
+
+    const handleToggleProjectAssignment = async (userId, projectId, currentlyAssigned) => {
+        setSaving(userId);
+        try {
+            const user = users.find(u => u.id === userId);
+            const currentProjects = user.assigned_projects || [];
+
+            const newProjects = currentlyAssigned
+                ? currentProjects.filter(id => id !== projectId)
+                : [...currentProjects, projectId];
+
+            await api.post(`/auth/users/${userId}/projects`, {
+                project_ids: newProjects
+            });
+
+            setMessage({ type: 'success', text: 'Project assignment updated' });
+            fetchUsers(); // Refresh user list
+        } catch (e) {
+            setMessage({ type: 'error', text: e.response?.data?.error || 'Failed to update assignment' });
+        } finally {
+            setSaving(null);
+        }
+    };
+
+
 
     const getRoleBadgeColor = (role) => {
         switch (role) {
@@ -480,11 +537,6 @@ export default function Settings() {
                                     <div className="font-bold text-gray-900 dark:text-white truncate">{u.display_name || 'Unnamed'}</div>
                                     <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{u.email}</div>
                                 </div>
-                                {u.status === 'rejected' && (
-                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                                        Rejected
-                                    </span>
-                                )}
                                 <select
                                     value={u.role}
                                     onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
@@ -496,14 +548,75 @@ export default function Settings() {
                                     <option value="shopline">Shopline</option>
                                     <option value="merchant">Merchant</option>
                                 </select>
+                                {u.status === 'rejected' && (
+                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                                        Rejected
+                                    </span>
+                                )}
+                                {/* Activation status - TODO: Add last_login_at field to portal_users table
+                                {u.status === 'approved' && (
+                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.last_sign_in_at ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'} border`}>
+                                        {u.last_sign_in_at ? 'Active' : 'Not Activated'}
+                                    </span>
+                                )}
+                                */}
                                 {u.email !== user?.email && (
-                                    <button
-                                        onClick={() => handleDeleteUser(u.id)}
-                                        disabled={saving === u.id}
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                                    >
-                                        {saving === u.id ? <Loader size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                                    </button>
+                                    <>
+                                        {u.role === 'merchant' && (
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => handleToggleProjectDropdown(u.id)}
+                                                    disabled={saving === u.id}
+                                                    className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
+                                                    title="Assign projects"
+                                                >
+                                                    <Shield size={16} />
+                                                </button>
+                                                {showProjectDropdown === u.id && (
+                                                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-64 overflow-y-auto">
+                                                        <div className="p-2">
+                                                            <div className="text-xs font-bold text-gray-500 dark:text-gray-400 px-2 py-1">
+                                                                Assign Projects
+                                                            </div>
+                                                            {allProjects.map(project => {
+                                                                const isAssigned = (u.assigned_projects || []).includes(project.id);
+                                                                return (
+                                                                    <label
+                                                                        key={project.id}
+                                                                        className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
+                                                                    >
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={isAssigned}
+                                                                            onChange={() => handleToggleProjectAssignment(u.id, project.id, isAssigned)}
+                                                                            disabled={saving === u.id}
+                                                                            className="w-4 h-4 text-green-600 rounded"
+                                                                        />
+                                                                        <span className="text-sm flex-1">{project.client_name}</span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={() => handleSendPasswordReset(u.id, u.email)}
+                                            disabled={saving === u.id}
+                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition disabled:opacity-50"
+                                            title="Send password reset email"
+                                        >
+                                            {saving === u.id ? <Loader size={16} className="animate-spin" /> : <Mail size={16} />}
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteUser(u.id)}
+                                            disabled={saving === u.id}
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                                        >
+                                            {saving === u.id ? <Loader size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         ))}

@@ -281,7 +281,7 @@ def get_all_users():
     status_filter = request.args.get('status')  # pending, approved, rejected
     
     try:
-        query = admin_db.table("portal_users").select("id, email, role, status, display_name, created_at")
+        query = admin_db.table("portal_users").select("id, email, role, status, display_name, created_at, assigned_projects")
         
         if status_filter:
             query = query.eq("status", status_filter)
@@ -362,4 +362,60 @@ def delete_user(user_id):
         
         return jsonify({"success": True, "message": "User deleted"})
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@auth.route('/users/<user_id>/reset-password', methods=['POST'])
+@require_auth
+@require_role('superadmin')
+def send_password_reset(user_id):
+    """Send password reset email to a user (superadmin only)."""
+    try:
+        # Get user email
+        user_data = admin_db.table("portal_users").select("email").eq("id", user_id).execute()
+        
+        if not user_data.data:
+            return jsonify({"error": "User not found"}), 404
+        
+        email = user_data.data[0]['email']
+        
+        # Send password reset email via Supabase
+        db.auth.reset_password_email(email)
+        
+        return jsonify({"success": True, "message": f"Password reset email sent to {email}"})
+    except Exception as e:
+        print(f"Password reset error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@auth.route('/users/<user_id>/projects', methods=['POST'])
+@require_auth
+@require_role('superadmin')
+def assign_projects(user_id):
+    """Assign projects to a user (superadmin only)."""
+    try:
+        data = request.json
+        project_ids = data.get('project_ids', [])
+        
+        # Update user's assigned projects
+        admin_db.table("portal_users").update({
+            "assigned_projects": project_ids
+        }).eq("id", user_id).execute()
+        
+        return jsonify({"success": True, "message": "Projects assigned successfully"})
+    except Exception as e:
+        print(f"Project assignment error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@auth.route('/projects/all', methods=['GET'])
+@require_auth
+@require_role('superadmin')
+def get_all_projects():
+    """Get all projects for assignment modal (superadmin only)."""
+    try:
+        # Fetch all projects (including partnerships) for assignment
+        projects = db.table("projects").select("id, client_name, category, is_partnership").order("client_name").execute()
+        return jsonify(projects.data)
+    except Exception as e:
+        print(f"Get all projects error: {e}")
         return jsonify({"error": str(e)}), 500
