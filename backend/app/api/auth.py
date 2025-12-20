@@ -224,18 +224,6 @@ def get_current_user():
 # USER MANAGEMENT (Admin Only)
 # =============================================================================
 
-@auth.route('/users', methods=['GET'])
-@require_auth
-@require_role('superadmin', 'internal')
-def list_users():
-    """List all portal users."""
-    try:
-        users = db.table("portal_users").select("*").order("created_at", desc=True).execute()
-        return jsonify(users.data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @auth.route('/users/<user_id>', methods=['PUT'])
 @require_auth
 @require_role('superadmin')

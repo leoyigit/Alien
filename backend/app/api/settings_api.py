@@ -5,7 +5,7 @@ Superadmin-only access to manage API keys and app configuration.
 """
 from flask import Blueprint, jsonify, request, g
 from app.api.auth import require_auth, require_role
-from app.core.supabase import db
+from app.core.supabase import db, admin_db
 
 settings_api = Blueprint('settings_api', __name__)
 
@@ -19,7 +19,7 @@ def get_all_settings():
     Only superadmins can access this endpoint.
     """
     try:
-        result = db.table("app_settings").select("*").order("key").execute()
+        result = admin_db.table("app_settings").select("*").order("key").execute()
         
         # Process settings - mask ALL values for security
         settings = []
@@ -51,7 +51,7 @@ def get_all_settings():
 def get_setting(key):
     """Get a specific setting (masked if secret)."""
     try:
-        result = db.table("app_settings").select("*").eq("key", key).execute()
+        result = admin_db.table("app_settings").select("*").eq("key", key).execute()
         
         if not result.data:
             return jsonify({"error": "Setting not found"}), 404
@@ -74,7 +74,7 @@ def get_setting(key):
 def reveal_setting(key):
     """Reveal the actual value of a setting. Superadmin only."""
     try:
-        result = db.table("app_settings").select("key, value").eq("key", key).execute()
+        result = admin_db.table("app_settings").select("key, value").eq("key", key).execute()
         
         if not result.data:
             return jsonify({"error": "Setting not found"}), 404
@@ -103,11 +103,11 @@ def update_setting(key):
     
     try:
         # Check if setting exists
-        existing = db.table("app_settings").select("id").eq("key", key).execute()
+        existing = admin_db.table("app_settings").select("id").eq("key", key).execute()
         
         if not existing.data:
             # Create new setting
-            db.table("app_settings").insert({
+            admin_db.table("app_settings").insert({
                 "key": key,
                 "value": new_value,
                 "is_secret": data.get('is_secret', True),
@@ -116,7 +116,7 @@ def update_setting(key):
             }).execute()
         else:
             # Update existing
-            db.table("app_settings").update({
+            admin_db.table("app_settings").update({
                 "value": new_value,
                 "updated_by": g.user['id'],
                 "updated_at": "now()"
@@ -133,7 +133,7 @@ def update_setting(key):
 def delete_setting(key):
     """Delete a setting."""
     try:
-        db.table("app_settings").delete().eq("key", key).execute()
+        admin_db.table("app_settings").delete().eq("key", key).execute()
         return jsonify({"success": True, "message": f"Setting '{key}' deleted"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -156,7 +156,7 @@ def test_connection(service):
             if request.is_json:
                 token = request.json.get('token')
             if not token:
-                setting = db.table("app_settings").select("value").eq("key", "SLACK_BOT_TOKEN").execute()
+                setting = admin_db.table("app_settings").select("value").eq("key", "SLACK_BOT_TOKEN").execute()
                 token = setting.data[0]['value'] if setting.data else None
             
             if not token:
@@ -178,7 +178,7 @@ def test_connection(service):
             if request.is_json:
                 api_key = request.json.get('api_key')
             if not api_key:
-                setting = db.table("app_settings").select("value").eq("key", "OPENAI_API_KEY").execute()
+                setting = admin_db.table("app_settings").select("value").eq("key", "OPENAI_API_KEY").execute()
                 api_key = setting.data[0]['value'] if setting.data else None
             
             if not api_key:
@@ -212,7 +212,7 @@ def get_team_members():
     Accessible by all authenticated users.
     """
     try:
-        result = db.table("app_settings").select("value").eq("key", "TEAM_MEMBERS").execute()
+        result = admin_db.table("app_settings").select("value").eq("key", "TEAM_MEMBERS").execute()
         
         if result.data and result.data[0].get('value'):
             import json
@@ -244,15 +244,15 @@ def update_team_members():
                 return jsonify({"error": "Each member must have a 'name'"}), 400
         
         # Store as JSON in app_settings
-        existing = db.table("app_settings").select("id").eq("key", "TEAM_MEMBERS").execute()
+        existing = admin_db.table("app_settings").select("id").eq("key", "TEAM_MEMBERS").execute()
         
         if existing.data:
-            db.table("app_settings").update({
+            admin_db.table("app_settings").update({
                 "value": json.dumps(members),
                 "updated_by": g.user['id']
             }).eq("key", "TEAM_MEMBERS").execute()
         else:
-            db.table("app_settings").insert({
+            admin_db.table("app_settings").insert({
                 "key": "TEAM_MEMBERS",
                 "value": json.dumps(members),
                 "is_secret": False,
@@ -280,7 +280,7 @@ def add_team_member():
     
     try:
         # Get current team
-        result = db.table("app_settings").select("value").eq("key", "TEAM_MEMBERS").execute()
+        result = admin_db.table("app_settings").select("value").eq("key", "TEAM_MEMBERS").execute()
         
         if result.data and result.data[0].get('value'):
             team = json.loads(result.data[0]['value'])
@@ -295,12 +295,12 @@ def add_team_member():
         
         # Save
         if result.data:
-            db.table("app_settings").update({
+            admin_db.table("app_settings").update({
                 "value": json.dumps(team),
                 "updated_by": g.user['id']
             }).eq("key", "TEAM_MEMBERS").execute()
         else:
-            db.table("app_settings").insert({
+            admin_db.table("app_settings").insert({
                 "key": "TEAM_MEMBERS",
                 "value": json.dumps(team),
                 "is_secret": False,
@@ -321,7 +321,7 @@ def remove_team_member(name):
     import json
     
     try:
-        result = db.table("app_settings").select("value").eq("key", "TEAM_MEMBERS").execute()
+        result = admin_db.table("app_settings").select("value").eq("key", "TEAM_MEMBERS").execute()
         
         if not result.data or not result.data[0].get('value'):
             return jsonify({"error": "Team list not found"}), 404
@@ -333,7 +333,7 @@ def remove_team_member(name):
         if len(team) == original_len:
             return jsonify({"error": f"{name} not found in team"}), 404
         
-        db.table("app_settings").update({
+        admin_db.table("app_settings").update({
             "value": json.dumps(team),
             "updated_by": g.user['id']
         }).eq("key", "TEAM_MEMBERS").execute()

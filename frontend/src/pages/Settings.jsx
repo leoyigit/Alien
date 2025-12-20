@@ -36,9 +36,12 @@ export default function Settings() {
         setLoading(true);
         try {
             const res = await api.get('/settings/');
+            console.log('Settings API Response:', res.data);
+            console.log('Number of settings:', res.data?.length);
             setSettings(res.data);
         } catch (e) {
             console.error('Failed to fetch settings:', e);
+            console.error('Error response:', e.response?.data);
         } finally {
             setLoading(false);
         }
