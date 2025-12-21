@@ -15,13 +15,16 @@ import AlienGPT from './pages/AlienGPT';
 import Partnerships from './pages/Partnerships';
 import PartnershipDetails from './pages/PartnershipDetails';
 import Contacts from './pages/Contacts';
+import AdminLogs from './pages/AdminLogs';
 import ThemeDebug from './pages/ThemeDebug';
 import AiChat from './components/ui/AiChat';
+import AlienGPTComponent from './components/AlienGPT';
 
 import { ToastProvider } from './context/ToastContext';
 import { ProjectsProvider } from './context/ProjectsContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 
 // Protected Route Component
 function ProtectedRoute({ children, requiredRole }) {
@@ -67,6 +70,7 @@ function NavLink({ to, icon: Icon, label, isCollapsed }) {
 
 function AppLayout({ children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showAlienGPT, setShowAlienGPT] = useState(false);
   const { user, logout, canAccessSettings } = useAuth();
 
   // Auto-collapse sidebar on narrow screens
@@ -105,7 +109,9 @@ function AppLayout({ children }) {
         <nav className="flex-1 p-4 space-y-1">
           <NavLink to="/projects" icon={LayoutDashboard} label="Dashboard" isCollapsed={isCollapsed} />
           <NavLink to="/pm" icon={ClipboardList} label="PM Station" isCollapsed={isCollapsed} />
-          <NavLink to="/scanner" icon={Radio} label="Scanner" isCollapsed={isCollapsed} />
+          {user?.role !== 'merchant' && (
+            <NavLink to="/scanner" icon={Radio} label="Scanner" isCollapsed={isCollapsed} />
+          )}
           {canAccessSettings() && (
             <>
               <NavLink to="/contacts" icon={Users} label="Contacts" isCollapsed={isCollapsed} />
@@ -114,12 +120,18 @@ function AppLayout({ children }) {
               <NavLink to="/alien-gpt" icon={Bot} label="AlienGPT" isCollapsed={isCollapsed} />
             </>
           )}
-          <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700">
-            <NavLink to="/archives" icon={Archive} label="Archives" isCollapsed={isCollapsed} />
-          </div>
+          {user?.role !== 'merchant' && (
+            <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700">
+              <NavLink to="/archives" icon={Archive} label="Archives" isCollapsed={isCollapsed} />
+            </div>
+          )}
         </nav>
 
         <div className="p-4 border-t border-gray-100 dark:border-gray-700">
+          {/* Logs - Only for superadmin */}
+          {user?.role === 'superadmin' && (
+            <NavLink to="/logs" icon={FileText} label="Activity Logs" isCollapsed={isCollapsed} />
+          )}
           {/* Settings - Only for superadmin */}
           {canAccessSettings() && (
             <NavLink to="/settings" icon={Settings} label="Settings" isCollapsed={isCollapsed} />
@@ -170,8 +182,19 @@ function AppLayout({ children }) {
         {children}
       </main>
 
-      {/* AI Chat Assistant - only for internal users */}
-      <AiChat userRole={user?.role} />
+      {/* AlienGPT Floating Button - Only for superadmin and internal */}
+      {!showAlienGPT && (user?.role === 'superadmin' || user?.role === 'internal') && (
+        <button
+          onClick={() => setShowAlienGPT(true)}
+          className="fixed bottom-4 right-4 z-40 p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200"
+          title="Ask AlienGPT"
+        >
+          <Bot size={24} />
+        </button>
+      )}
+
+      {/* AlienGPT Component */}
+      <AlienGPTComponent isOpen={showAlienGPT} onClose={() => setShowAlienGPT(false)} />
     </div>
   );
 }
@@ -201,6 +224,8 @@ function AppRoutes() {
       <Route path="/pm" element={<ProtectedRoute><AppLayout><PMStation /></AppLayout></ProtectedRoute>} />
       <Route path="/partnerships/:id" element={<ProtectedRoute><AppLayout><PartnershipDetails /></AppLayout></ProtectedRoute>} />
       <Route path="/partnerships" element={<ProtectedRoute><AppLayout><Partnerships /></AppLayout></ProtectedRoute>} />
+      <Route path="/contacts" element={<ProtectedRoute><AppLayout><Contacts /></AppLayout></ProtectedRoute>} />
+      <Route path="/logs" element={<ProtectedRoute requiredRole="superadmin"><AppLayout><AdminLogs /></AppLayout></ProtectedRoute>} />
       <Route path="/scanner" element={<ProtectedRoute><AppLayout><Scanner /></AppLayout></ProtectedRoute>} />
       <Route path="/archives" element={<ProtectedRoute><AppLayout><Archives /></AppLayout></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><AppLayout><Reports /></AppLayout></ProtectedRoute>} />
@@ -233,11 +258,13 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <ToastProvider>
-            <ProjectsProvider>
-              <AppRoutes />
-            </ProjectsProvider>
-          </ToastProvider>
+          <ConfirmProvider>
+            <ToastProvider>
+              <ProjectsProvider>
+                <AppRoutes />
+              </ProjectsProvider>
+            </ToastProvider>
+          </ConfirmProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

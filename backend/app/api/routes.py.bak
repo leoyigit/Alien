@@ -6,7 +6,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from app.core.config import settings
 from app.core.supabase import db
-from app.api.auth import require_auth, require_role
+from app.api.auth import require_auth
 
 # Initialize Blueprint and Slack Client
 api = Blueprint('api', __name__)
@@ -487,7 +487,7 @@ def update_project_report(project_id):
         # 2. Calculate History Diff
         changes = {}
         # Only track history for these specific important fields
-        audit_fields = ["status_detail", "blocker", "category", "owner", "developer", "launch_date_public", "client_name", "last_contact_date", "last_communication_via"]
+        audit_fields = ["status_detail", "blocker", "category", "owner", "developer", "launch_date_public", "client_name"]
         
         has_changes = False
         for field in audit_fields:
@@ -647,164 +647,6 @@ def sync_history():
         print(f"🔥 CRITICAL SYNC ERROR: {e}")
         return jsonify({"error": str(e)}), 500
 
-@api.route('/projects/<project_id>', methods=['DELETE'])
-@require_auth
-def delete_project(project_id):
-    """
-    Delete a project (superadmin only).
-    """
-    from app.core.supabase import admin_db
-    
-    # Only superadmins can delete projects
-    if g.user.get('role') != 'superadmin':
-        return jsonify({"error": "Unauthorized - Superadmin only"}), 403
-    
-    try:
-        # Delete project from database
-        admin_db.table("projects").delete().eq("id", project_id).execute()
-        
-        return jsonify({"success": True, "message": "Project deleted successfully"})
-    except Exception as e:
-        print(f"Error deleting project: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-@api.route('/projects/<project_id>/stakeholders', methods=['GET'])
-@require_auth
-def get_project_stakeholders(project_id):
-    """
-    Get all stakeholders for a project.
-    """
-    try:
-        # Get stakeholders with contact details using Supabase query
-        result = db.table("project_stakeholders").select(
-            "id, role, contact_id, contacts(id, name, email, phone, company, role, slack_user_id)"
-        ).eq("project_id", project_id).execute()
-        
-        # Flatten the nested structure
-        stakeholders = []
-        for row in result.data:
-            contact = row.get('contacts', {})
-            stakeholder = {
-                'stakeholder_id': row['id'],
-                'stakeholder_role': row.get('role'),
-                'id': contact.get('id'),
-                'name': contact.get('name'),
-                'email': contact.get('email'),
-                'phone': contact.get('phone'),
-                'company': contact.get('company'),
-                'role': contact.get('role'),
-                'slack_user_id': contact.get('slack_user_id')
-            }
-            stakeholders.append(stakeholder)
-        
-        return jsonify(stakeholders)
-    except Exception as e:
-        print(f"Error fetching stakeholders: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-@api.route('/projects/<project_id>/stakeholders', methods=['POST'])
-@require_auth
-@require_role('superadmin', 'internal')
-def add_project_stakeholder(project_id):
-    """
-    Add a stakeholder to a project.
-    """
-    data = request.json
-    contact_id = data.get('contact_id')
-    role = data.get('role')
-    
-    if not contact_id:
-        return jsonify({"error": "contact_id is required"}), 400
-    
-    try:
-        # Insert stakeholder link
-        result = db.table("project_stakeholders").insert({
-            "project_id": project_id,
-            "contact_id": contact_id,
-            "role": role,
-            "added_by": g.user['id']
-        }).execute()
-        
-        return jsonify(result.data[0]), 201
-    except Exception as e:
-        print(f"Error adding stakeholder: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-@api.route('/projects/<project_id>/stakeholders/<contact_id>', methods=['DELETE'])
-@require_auth
-@require_role('superadmin', 'internal')
-def remove_project_stakeholder(project_id, contact_id):
-    """
-    Remove a stakeholder from a project.
-    """
-    try:
-        db.table("project_stakeholders").delete().eq("project_id", project_id).eq("contact_id", contact_id).execute()
-        return jsonify({"success": True, "message": "Stakeholder removed"})
-    except Exception as e:
-        print(f"Error removing stakeholder: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-@api.route('/projects/<project_id>/sync-stakeholders', methods=['POST'])
-@require_auth
-@require_role('superadmin', 'internal')
-def sync_project_stakeholders(project_id):
-    """
-    Auto-sync stakeholders from project's Slack channels.
-    """
-    from slack_sdk import WebClient
-    from app.core.config import settings
-    
-    try:
-        slack_client = WebClient(token=settings.SLACK_BOT_TOKEN)
-        
-        # Get project channels
-        project = db.table("projects").select("channel_id_internal, channel_id_external").eq("id", project_id).execute()
-        if not project.data:
-            return jsonify({"error": "Project not found"}), 404
-        
-        project_data = project.data[0]
-        all_user_ids = set()
-        
-        # Get members from both channels
-        for channel_key in ['channel_id_internal', 'channel_id_external']:
-            channel_id = project_data.get(channel_key)
-            if channel_id:
-                try:
-                    members_response = slack_client.conversations_members(channel=channel_id)
-                    all_user_ids.update(members_response['members'])
-                except Exception as e:
-                    print(f"Error fetching channel members: {e}")
-        
-        # Find contacts with these Slack IDs
-        added_count = 0
-        for user_id in all_user_ids:
-            contact = db.table("contacts").select("id").eq("slack_user_id", user_id).execute()
-            if contact.data:
-                contact_id = contact.data[0]['id']
-                # Add to stakeholders (ignore if already exists)
-                try:
-                    db.table("project_stakeholders").insert({
-                        "project_id": project_id,
-                        "contact_id": contact_id,
-                        "added_by": g.user['id']
-                    }).execute()
-                    added_count += 1
-                except:
-                    pass  # Already exists
-        
-        return jsonify({
-            "success": True,
-            "message": f"Synced {added_count} stakeholders from channels",
-            "added": added_count
-        })
-    except Exception as e:
-        print(f"Error syncing stakeholders: {e}")
-        return jsonify({"error": str(e)}), 500
-
 @api.route('/projects/<project_id>/logs', methods=['GET'])
 @require_auth
 def get_project_logs(project_id):
@@ -924,40 +766,6 @@ def get_channel_members(project_id):
 @api.route('/create-project', methods=['POST'])
 def create_project():
     """
-    Creates Project in DB.
-    Slack channels can be added manually or via Scanner.
-    """
-    data = request.json
-    client_name = data.get("client_name")
-    owner = data.get("owner", "Unassigned")
-
-    if not client_name:
-        return jsonify({"error": "Client Name is required"}), 400
-
-    try:
-        # Create DB Entry (without Slack channels)
-        project_data = {
-            "client_name": client_name,
-            "owner": owner,
-            "status_detail": "Initialized",
-            "category": "New / In Progress"
-        }
-        
-        result = db.table("projects").insert(project_data).execute()
-        project_id = result.data[0]['id'] if result.data else None
-
-        return jsonify({
-            "success": True, 
-            "message": f"Project '{client_name}' created!",
-            "project_id": project_id
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-def create_project():
-    """
     1. Creates Project in DB.
     2. Auto-creates Slack Channels (#name-internal, #name-external).
     """
@@ -993,7 +801,7 @@ def create_project():
                     # In a real app, you might want to fetch the existing ID here
                 else:
                     print(f"❌ Failed to create {name}: {e.response['error']}")
-                    pass  # Continue without Slack channels
+                    raise e
 
         # 3. Create DB Entry
         project_data = {

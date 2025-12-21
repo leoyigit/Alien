@@ -1,13 +1,198 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import api from '../services/api';
 import {
     Settings as SettingsIcon, Key, Users, Shield, Save, Trash2,
     Check, X, Eye, EyeOff, RefreshCw, Loader, AlertCircle, Zap, UserPlus, UserCog, Mail
 } from 'lucide-react';
 
+// UserRow Component - renders individual user with project tags
+function UserRow({ user: u, projects, showProjects = false }) {
+    const { user, canAccessSettings } = useAuth();
+    const [saving, setSaving] = useState(null);
+    const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+    const [allProjects, setAllProjects] = useState([]);
+
+    useEffect(() => {
+        if (showProjectDropdown && allProjects.length === 0) {
+            api.get('/auth/projects/all').then(res => setAllProjects(res.data || [])).catch(console.error);
+        }
+    }, [showProjectDropdown]);
+
+    const handleUpdateUserRole = async (userId, newRole) => {
+        setSaving(userId);
+        try {
+            await api.put(`/auth/users/${userId}/role`, { role: newRole });
+            window.location.reload(); // Reload to refresh user list
+        } catch (e) {
+            console.error('Failed to update role:', e);
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    const handleToggleProjectAssignment = async (userId, projectId, isCurrentlyAssigned) => {
+        setSaving(userId);
+        try {
+            const currentProjects = u.assigned_projects || [];
+            const newProjects = isCurrentlyAssigned
+                ? currentProjects.filter(id => id !== projectId)
+                : [...currentProjects, projectId];
+
+            await api.post(`/auth/users/${userId}/projects`, { project_ids: newProjects });
+            window.location.reload();
+        } catch (e) {
+            console.error('Failed to toggle project:', e);
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    const handleSendPasswordReset = async (userId, email) => {
+        setSaving(userId);
+        try {
+            await api.post(`/auth/users/${userId}/reset-password`);
+            alert(`Password reset email sent to ${email}`);
+        } catch (e) {
+            console.error('Failed to send reset:', e);
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    const handleDeleteUser = async (userId) => {
+        const confirmed = await confirm({
+            title: 'Delete User',
+            message: 'Are you sure you want to delete this user?',
+            variant: 'danger'
+        });
+        if (!confirmed) return;
+        setSaving(userId);
+        try {
+            await api.delete(`/auth/users/${userId}`);
+            window.location.reload();
+        } catch (e) {
+            console.error('Failed to delete user:', e);
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    const getRoleBadgeColor = (role) => {
+        switch (role) {
+            case 'superadmin': return 'bg-purple-100 text-purple-700 border-purple-200';
+            case 'internal': return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'shopline': return 'bg-green-100 text-green-700 border-green-200';
+            case 'merchant': return 'bg-gray-100 text-gray-700 border-gray-200';
+            default: return 'bg-gray-100 text-gray-600 border-gray-200';
+        }
+    };
+
+    // Get assigned project names for merchants
+    const assignedProjectNames = showProjects && u.assigned_projects
+        ? projects.filter(p => u.assigned_projects.includes(p.id)).map(p => p.client_name)
+        : [];
+
+    return (
+        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 transition">
+            <div className="w-10 h-10 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-gray-600 border-2 border-gray-200">
+                {u.display_name?.charAt(0) || u.email?.charAt(0) || '?'}
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="font-bold text-gray-900 dark:text-white truncate">{u.display_name || 'Unnamed'}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</div>
+                {showProjects && assignedProjectNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                        {assignedProjectNames.map(name => (
+                            <span key={name} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                                {name}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
+            <select
+                value={u.role}
+                onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
+                disabled={u.email === user?.email || saving === u.id || u.status === 'rejected'}
+                className={`px-2 py-1 rounded-lg text-xs font-bold border ${getRoleBadgeColor(u.role)} ${u.email === user?.email || u.status === 'rejected' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+                <option value="superadmin">Superadmin</option>
+                <option value="internal">Internal</option>
+                <option value="shopline">Shopline</option>
+                <option value="merchant">Merchant</option>
+            </select>
+            {u.status === 'rejected' && (
+                <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                    Rejected
+                </span>
+            )}
+            {u.email !== user?.email && (
+                <>
+                    {u.role === 'merchant' && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                                disabled={saving === u.id}
+                                className="p-1.5 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
+                                title="Assign projects"
+                            >
+                                <Shield size={14} />
+                            </button>
+                            {showProjectDropdown && (
+                                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-64 overflow-y-auto">
+                                    <div className="p-2">
+                                        <div className="text-xs font-bold text-gray-500 dark:text-gray-400 px-2 py-1">
+                                            Assign Projects
+                                        </div>
+                                        {allProjects.map(project => {
+                                            const isAssigned = (u.assigned_projects || []).includes(project.id);
+                                            return (
+                                                <label
+                                                    key={project.id}
+                                                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isAssigned}
+                                                        onChange={() => handleToggleProjectAssignment(u.id, project.id, isAssigned)}
+                                                        disabled={saving === u.id}
+                                                        className="w-4 h-4 text-green-600 rounded"
+                                                    />
+                                                    <span className="text-sm flex-1">{project.client_name}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <button
+                        onClick={() => handleSendPasswordReset(u.id, u.email)}
+                        disabled={saving === u.id}
+                        className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition disabled:opacity-50"
+                        title="Send password reset email"
+                    >
+                        {saving === u.id ? <Loader size={14} className="animate-spin" /> : <Mail size={14} />}
+                    </button>
+                    <button
+                        onClick={() => handleDeleteUser(u.id)}
+                        disabled={saving === u.id}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                    >
+                        {saving === u.id ? <Loader size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    </button>
+                </>
+            )}
+        </div>
+    );
+}
+
 export default function Settings() {
     const { user, canAccessSettings, canManageUsers } = useAuth();
+    const { confirm } = useConfirm();
     const [activeTab, setActiveTab] = useState('integrations');
     const [settings, setSettings] = useState([]);
     const [users, setUsers] = useState([]);
@@ -21,8 +206,10 @@ export default function Settings() {
     const [message, setMessage] = useState(null);
     const [newMemberName, setNewMemberName] = useState('');
     const [newMemberRole, setNewMemberRole] = useState('Both');
+    const [syncingSlack, setSyncingSlack] = useState(false);
     const [showProjectDropdown, setShowProjectDropdown] = useState(null); // userId when dropdown is open
     const [allProjects, setAllProjects] = useState([]);
+    const [projects, setProjects] = useState([]); // For merchant project tags
 
     useEffect(() => {
         if (activeTab === 'integrations') {
@@ -52,10 +239,14 @@ export default function Settings() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/auth/users');
-            console.log('Users API Response:', res.data);
-            console.log('Number of users:', res.data?.length);
-            setUsers(res.data);
+            const [usersRes, projectsRes] = await Promise.all([
+                api.get('/auth/users'),
+                api.get('/projects')
+            ]);
+            console.log('Users API Response:', usersRes.data);
+            console.log('Number of users:', usersRes.data?.length);
+            setUsers(usersRes.data);
+            setProjects(projectsRes.data || []);
         } catch (e) {
             console.error('Failed to fetch users:', e);
             console.error('Error response:', e.response?.data);
@@ -94,8 +285,12 @@ export default function Settings() {
     };
 
     const handleRemoveTeamMember = async (name) => {
-        // Using toast for confirmation instead of browser confirm
-        if (!window.confirm(`Remove ${name} from team?`)) return;  // Keep for now, will enhance later
+        const confirmed = await confirm({
+            title: 'Remove Team Member',
+            message: `Remove ${name} from team?`,
+            variant: 'warning'
+        });
+        if (!confirmed) return;
         setSaving(name);
         try {
             await api.delete(`/settings/team/${encodeURIComponent(name)}`);
@@ -166,7 +361,12 @@ export default function Settings() {
     };
 
     const handleRejectUser = async (userId) => {
-        if (!window.confirm('Are you sure you want to reject this user?')) return;
+        const confirmed = await confirm({
+            title: 'Reject User',
+            message: 'Are you sure you want to reject this user?',
+            variant: 'warning'
+        });
+        if (!confirmed) return;
         setSaving(userId);
         try {
             await api.post(`/auth/users/${userId}/reject`);
@@ -180,7 +380,12 @@ export default function Settings() {
     };
 
     const handleDeleteUser = async (userId) => {
-        if (!window.confirm('Are you sure you want to delete this user? This cannot be undone.')) return;
+        const confirmed = await confirm({
+            title: 'Delete User',
+            message: 'Are you sure you want to delete this user? This cannot be undone.',
+            variant: 'danger'
+        });
+        if (!confirmed) return;
         setSaving(userId);
         try {
             await api.delete(`/auth/users/${userId}`);
@@ -411,9 +616,30 @@ export default function Settings() {
                 </div>
             ) : activeTab === 'team' ? (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200">
-                    <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-                        <h3 className="font-bold text-lg">Internal Team Members</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">These names appear in PM/Dev dropdowns</p>
+                    <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-bold text-lg">Internal Team Members</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">These names appear in PM/Dev dropdowns</p>
+                        </div>
+                        <button
+                            onClick={async () => {
+                                setSyncingSlack(true);
+                                try {
+                                    const res = await api.post('/settings/team/sync-slack');
+                                    setMessage({ type: 'success', text: res.data.message });
+                                    fetchTeamMembers(); // Refresh team members
+                                } catch (e) {
+                                    setMessage({ type: 'error', text: e.response?.data?.error || 'Failed to sync Slack IDs' });
+                                } finally {
+                                    setSyncingSlack(false);
+                                }
+                            }}
+                            disabled={syncingSlack}
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700 disabled:opacity-50 transition"
+                        >
+                            {syncingSlack ? <Loader size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                            {syncingSlack ? 'Syncing...' : 'Sync Slack IDs'}
+                        </button>
                     </div>
 
                     {/* Add New Member */}
@@ -527,99 +753,67 @@ export default function Settings() {
                         </div>
                     )}
 
+                    {/* User Groups by Role */}
                     <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {users.filter(u => u.status !== 'pending').map(u => (
-                            <div key={u.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition">
-                                <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-gray-600">
-                                    {u.display_name?.charAt(0) || u.email?.charAt(0) || '?'}
+                        {/* Superadmin Group - Only visible to superadmins */}
+                        {user?.role === 'superadmin' && users.filter(u => u.status !== 'pending' && u.role === 'superadmin').length > 0 && (
+                            <div className="p-4">
+                                <h4 className="text-xs font-bold text-purple-600 uppercase mb-3 flex items-center gap-2">
+                                    <Shield size={14} />
+                                    Superadmin ({users.filter(u => u.status !== 'pending' && u.role === 'superadmin').length})
+                                </h4>
+                                <div className="space-y-2">
+                                    {users.filter(u => u.status !== 'pending' && u.role === 'superadmin').map(u => (
+                                        <UserRow key={u.id} user={u} projects={projects} />
+                                    ))}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="font-bold text-gray-900 dark:text-white truncate">{u.display_name || 'Unnamed'}</div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{u.email}</div>
-                                </div>
-                                <select
-                                    value={u.role}
-                                    onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                                    disabled={u.email === user?.email || saving === u.id || u.status === 'rejected'}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-bold border ${getRoleBadgeColor(u.role)} ${u.email === user?.email || u.status === 'rejected' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                                >
-                                    <option value="superadmin">Superadmin</option>
-                                    <option value="internal">Internal</option>
-                                    <option value="shopline">Shopline</option>
-                                    <option value="merchant">Merchant</option>
-                                </select>
-                                {u.status === 'rejected' && (
-                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                                        Rejected
-                                    </span>
-                                )}
-                                {/* Activation status - TODO: Add last_login_at field to portal_users table
-                                {u.status === 'approved' && (
-                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.last_sign_in_at ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'} border`}>
-                                        {u.last_sign_in_at ? 'Active' : 'Not Activated'}
-                                    </span>
-                                )}
-                                */}
-                                {u.email !== user?.email && (
-                                    <>
-                                        {u.role === 'merchant' && (
-                                            <div className="relative">
-                                                <button
-                                                    onClick={() => handleToggleProjectDropdown(u.id)}
-                                                    disabled={saving === u.id}
-                                                    className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
-                                                    title="Assign projects"
-                                                >
-                                                    <Shield size={16} />
-                                                </button>
-                                                {showProjectDropdown === u.id && (
-                                                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-64 overflow-y-auto">
-                                                        <div className="p-2">
-                                                            <div className="text-xs font-bold text-gray-500 dark:text-gray-400 px-2 py-1">
-                                                                Assign Projects
-                                                            </div>
-                                                            {allProjects.map(project => {
-                                                                const isAssigned = (u.assigned_projects || []).includes(project.id);
-                                                                return (
-                                                                    <label
-                                                                        key={project.id}
-                                                                        className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
-                                                                    >
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={isAssigned}
-                                                                            onChange={() => handleToggleProjectAssignment(u.id, project.id, isAssigned)}
-                                                                            disabled={saving === u.id}
-                                                                            className="w-4 h-4 text-green-600 rounded"
-                                                                        />
-                                                                        <span className="text-sm flex-1">{project.client_name}</span>
-                                                                    </label>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                        <button
-                                            onClick={() => handleSendPasswordReset(u.id, u.email)}
-                                            disabled={saving === u.id}
-                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition disabled:opacity-50"
-                                            title="Send password reset email"
-                                        >
-                                            {saving === u.id ? <Loader size={16} className="animate-spin" /> : <Mail size={16} />}
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteUser(u.id)}
-                                            disabled={saving === u.id}
-                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                                        >
-                                            {saving === u.id ? <Loader size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                                        </button>
-                                    </>
-                                )}
                             </div>
-                        ))}
+                        )}
+
+                        {/* Internal Team */}
+                        {users.filter(u => u.status !== 'pending' && u.role === 'internal').length > 0 && (
+                            <div className="p-4">
+                                <h4 className="text-xs font-bold text-blue-600 uppercase mb-3 flex items-center gap-2">
+                                    <Users size={14} />
+                                    Internal Team ({users.filter(u => u.status !== 'pending' && u.role === 'internal').length})
+                                </h4>
+                                <div className="space-y-2">
+                                    {users.filter(u => u.status !== 'pending' && u.role === 'internal').map(u => (
+                                        <UserRow key={u.id} user={u} projects={projects} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Shopline Team */}
+                        {users.filter(u => u.status !== 'pending' && u.role === 'shopline').length > 0 && (
+                            <div className="p-4">
+                                <h4 className="text-xs font-bold text-green-600 uppercase mb-3 flex items-center gap-2">
+                                    <Zap size={14} />
+                                    Shopline Team ({users.filter(u => u.status !== 'pending' && u.role === 'shopline').length})
+                                </h4>
+                                <div className="space-y-2">
+                                    {users.filter(u => u.status !== 'pending' && u.role === 'shopline').map(u => (
+                                        <UserRow key={u.id} user={u} projects={projects} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Merchants */}
+                        {users.filter(u => u.status !== 'pending' && u.role === 'merchant').length > 0 && (
+                            <div className="p-4">
+                                <h4 className="text-xs font-bold text-gray-600 uppercase mb-3 flex items-center gap-2">
+                                    <UserCog size={14} />
+                                    Merchants ({users.filter(u => u.status !== 'pending' && u.role === 'merchant').length})
+                                </h4>
+                                <div className="space-y-2">
+                                    {users.filter(u => u.status !== 'pending' && u.role === 'merchant').map(u => (
+                                        <UserRow key={u.id} user={u} projects={projects} showProjects={true} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

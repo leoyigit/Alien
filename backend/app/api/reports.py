@@ -89,6 +89,8 @@ def generate_report():
         data = request.json
         report_type = data.get('report_type', 'pm_status')
         project_ids = data.get('project_ids', [])
+        stages = data.get('stages')  # None for all, or list of stage names
+        excluded_projects = data.get('excluded_projects', [])  # List of project IDs to exclude
         
         # Get OpenAI client
         client = get_openai_client()
@@ -107,6 +109,14 @@ def generate_report():
             # This ensures reports focus on projects that need attention
             projects = [p for p in all_projects if p.get('category') != 'Launched']
         
+        # Apply stage filtering if specified
+        if stages:
+            projects = [p for p in projects if p.get('category') in stages]
+        
+        # Apply project exclusion if specified
+        if excluded_projects:
+            projects = [p for p in projects if p['id'] not in excluded_projects]
+        
         if not projects:
             return jsonify({"error": "No active projects found"}), 404
         
@@ -116,15 +126,27 @@ def generate_report():
         
         # Build context based on report type
         if report_type == 'pm_status':
-            # Calculate counts for ALL projects (including Launched for context)
-            all_counts = {
-                "New / In Progress": sum(1 for p in all_projects if p.get('category') == 'New / In Progress'),
-                "Almost Ready": sum(1 for p in all_projects if p.get('category') == 'Almost Ready'),
-                "Ready": sum(1 for p in all_projects if p.get('category') == 'Ready'),
-                "Stuck / On Hold": sum(1 for p in all_projects if p.get('category') == 'Stuck / On Hold'),
-                "Launched": sum(1 for p in all_projects if p.get('category') == 'Launched')
+            # Calculate counts for filtered projects (what we're actually reporting on)
+            filtered_counts = {}
+            for p in projects:
+                cat = p.get('category', 'Unknown')
+                filtered_counts[cat] = filtered_counts.get(cat, 0) + 1
+            
+            # Build category list for prompt (only categories that exist in filtered projects)
+            category_lines = []
+            category_emojis = {
+                'New / In Progress': '🔵',
+                'Almost Ready': '🟡',
+                'Ready': '🟢',
+                'Stuck / On Hold': '🔴',
+                'Launched': '🟣'
             }
-            total_count = sum(all_counts.values())
+            for cat, count in filtered_counts.items():
+                emoji = category_emojis.get(cat, '⚪')
+                category_lines.append(f"    - {emoji} {cat.upper()} ({count})")
+            
+            categories_to_include = "\n".join(category_lines)
+            total_filtered = sum(filtered_counts.values())
             
             context = build_detailed_pm_context(projects)
             system_prompt = f"""You are an expert PM lead generating a "PM Status Report".
@@ -147,29 +169,32 @@ def generate_report():
 
     3. Add a blank line between projects for readability
 
-    Categories to include:
-    - 🔵 NEW / IN PROGRESS ({all_counts['New / In Progress']})
-    - 🟡 ALMOST READY ({all_counts['Almost Ready']})
-    - 🟢 READY ({all_counts['Ready']})
-    - 🔴 STUCK / ON HOLD ({all_counts['Stuck / On Hold']})
+    Categories to include (ONLY show these categories that are in the filtered data):
+{categories_to_include}
 
-    Do NOT include Launched projects in details.
+    Do NOT include any other categories.
 
     Final Section:
     ### Overall Summary & Suggestions
-    Provide a high-level overview showing total counts: {all_counts['New / In Progress']} New, {all_counts['Almost Ready']} Almost Ready, {all_counts['Ready']} Ready, {all_counts['Stuck / On Hold']} Stuck, {all_counts['Launched']} Launched (Total: {total_count})
-    Add specific suggestions for the team.
+    Provide a high-level overview showing the filtered project counts (Total: {total_filtered} projects).
+    Add specific suggestions for the team based on the filtered projects.
 
     Be professional, detailed, and highly readable."""
 
         elif report_type == 'migration_tracker':
-            # Calculate counts for migration stages
-            migration_counts = {
-                "New / In Progress": sum(1 for p in projects if p.get('category') == 'New / In Progress'),
-                "Almost Ready": sum(1 for p in projects if p.get('category') == 'Almost Ready'),
-                "Ready": sum(1 for p in projects if p.get('category') == 'Ready'),
-                "Stuck / On Hold": sum(1 for p in projects if p.get('category') == 'Stuck / On Hold'),
-            }
+            # Calculate counts for filtered migration projects
+            migration_counts = {}
+            for p in projects:
+                cat = p.get('category', 'Unknown')
+                migration_counts[cat] = migration_counts.get(cat, 0) + 1
+            
+            # Build category list for prompt
+            migration_category_lines = []
+            for cat, count in migration_counts.items():
+                emoji = category_emojis.get(cat, '⚪')
+                migration_category_lines.append(f"    - {emoji} {cat.upper()} ({count})")
+            
+            migration_categories_to_include = "\n".join(migration_category_lines)
             total_migration = sum(migration_counts.values())
             
             context = build_migration_context(projects)
@@ -193,16 +218,15 @@ def generate_report():
 
     3. Add a blank line between projects for readability
 
-    Categories to include:
-    - 🔵 NEW / IN PROGRESS ({migration_counts['New / In Progress']})
-    - 🟡 ALMOST READY ({migration_counts['Almost Ready']})
-    - 🟢 READY ({migration_counts['Ready']})
-    - 🔴 STUCK / ON HOLD ({migration_counts['Stuck / On Hold']})
+    Categories to include (ONLY show these categories that are in the filtered data):
+{migration_categories_to_include}
+
+    Do NOT include any other categories.
 
     Final Section:
     ### Overall Summary & Recommendations
-    Provide migration progress overview showing total counts: {migration_counts['New / In Progress']} New, {migration_counts['Almost Ready']} Almost Ready, {migration_counts['Ready']} Ready, {migration_counts['Stuck / On Hold']} Stuck (Total: {total_migration})
-    Add specific next steps and recommendations for the migration team.
+    Provide migration progress overview showing the filtered project counts (Total: {total_migration} projects).
+    Add specific next steps and recommendations for the migration team based on the filtered projects.
 
     Be professional, detailed, and highly readable."""
 
@@ -256,7 +280,9 @@ def generate_report():
                 "metadata": {
                     "project_ids": project_ids if project_ids else [],
                     "total_projects": len(all_projects),
-                    "active_projects": len(projects)
+                    "active_projects": len(projects),
+                    "stages": stages if stages else "all",
+                    "excluded_projects": excluded_projects if excluded_projects else []
                 }
             }).execute()
             print(f"[REPORTS] Saved report to database with ID: {report_id}")
@@ -329,6 +355,7 @@ def send_report_to_slack():
     data = request.json
     content = data.get('content')
     report_type = data.get('report_type', 'Status Report')
+    user_id = data.get('user_id')  # Slack user ID for DM
     
     if not content:
         return jsonify({"error": "No content to send"}), 400
@@ -339,8 +366,9 @@ def send_report_to_slack():
         # Convert Markdown to Slack mrkdwn format
         s_content = content
         
-        # Remove the main title (# PM Status Report) since we show it in the header
-        s_content = re.sub(r'^# .*Report.*$', '', s_content, flags=re.MULTILINE)
+        # Remove the main title (# PM Status Report, # Migration Progress Report, etc.)
+        # This prevents duplicate headers since we show it in the Slack block header
+        s_content = re.sub(r'^#\s+.*Report.*$', '', s_content, flags=re.MULTILINE)
         
         # Convert headers (Slack doesn't support headers, use bold + newlines)
         # Skip # headers since we removed the main one
@@ -415,7 +443,7 @@ def send_report_to_slack():
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"📊 *{report_title}*\nGenerated: {datetime.now(timezone(timedelta(hours=1))).strftime('%b %d, %Y at %I:%M %p')}"
+                    "text": f"📊 *{report_title}*\nGenerated: {datetime.now(timezone(timedelta(hours=1))).strftime('%b %d, %Y at %H:%M')} CET"
                 }
             },
             {"type": "divider"}
@@ -430,8 +458,11 @@ def send_report_to_slack():
                 }
             })
         
+        # Send to Slack (channel or DM)
+        channel = user_id if user_id else "C09BMF2RKC0"  # Use user_id for DM, otherwise #operations channel
+        
         slack_client.chat_postMessage(
-            channel="C09BMF2RKC0",
+            channel=channel,
             blocks=blocks
         )
         

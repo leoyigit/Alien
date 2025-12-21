@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { useProjects } from '../context/ProjectsContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import TerminalLoader from '../components/ui/TerminalLoader.jsx';
+import CommunicationMethodModal from '../components/CommunicationMethodModal.jsx';
 import {
   Plus, AlertCircle, ArrowRight, ExternalLink, Save, X,
   Pencil, RefreshCw, MoreHorizontal, HelpCircle, Search
@@ -13,13 +14,15 @@ import { BLOCKER_OPTS, parseBlocker } from '../utils/constants';
 
 export default function PMStation() {
   const { projects, loading, fetchProjects, updateLocalProject } = useProjects();
-  const { canAccessProject } = useAuth();
+  const { canAccessProject, canEditProject } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [newClientOwner, setNewClientOwner] = useState("");
   const [activeFilter, setActiveFilter] = useState('All Active');
   const [editingProject, setEditingProject] = useState(null);
   const [formData, setFormData] = useState({});
+  const [showCommMethodModal, setShowCommMethodModal] = useState(false);
+  const [pendingLastCallDate, setPendingLastCallDate] = useState(null);
   const [users, setUsers] = useState({});
   const [teamMembers, setTeamMembers] = useState([]);
   const [syncingProject, setSyncingProject] = useState(null);
@@ -149,12 +152,14 @@ export default function PMStation() {
   const handleCreateProject = async () => {
     if (!newClientName.trim()) return;
     try {
-      await api.post('/create-project', { client_name: newClientName, owner: newClientOwner });
-      showToast("Project Created!", "success");
+      const response = await api.post('/create-project', { client_name: newClientName, owner: newClientOwner });
+      const newProjectId = response.data.project_id;
+      showToast("Project Created! Redirecting to details...", "success");
       setNewClientName("");
       setNewClientOwner("");
       setShowAddModal(false);
-      fetchProjects(true);
+      // Navigate to project details page for full setup
+      navigate(`/projects/${newProjectId}`);
     } catch (err) { showToast("Error: " + err.message, "error"); }
   };
 
@@ -165,6 +170,36 @@ export default function PMStation() {
         ? { ...prev, blocker_cats: cats.filter(c => c !== cat) }
         : { ...prev, blocker_cats: [...cats, cat] };
     });
+  };
+
+  // Handle Last Call date change - trigger modal if date is being set
+  const handleLastCallChange = (newDate) => {
+    const oldDate = formData.last_contact_date;
+
+    // If date is being set or changed (not cleared)
+    if (newDate && newDate !== oldDate) {
+      setPendingLastCallDate(newDate);
+      setShowCommMethodModal(true);
+    } else {
+      // If clearing the date, just update
+      setFormData({ ...formData, last_contact_date: newDate });
+    }
+  };
+
+  // Handle communication method confirmation from modal
+  const handleCommMethodConfirm = (methods) => {
+    setFormData({
+      ...formData,
+      last_contact_date: pendingLastCallDate,
+      last_communication_via: methods
+    });
+    setShowCommMethodModal(false);
+    setPendingLastCallDate(null);
+  };
+
+  const handleCommMethodCancel = () => {
+    setShowCommMethodModal(false);
+    setPendingLastCallDate(null);
   };
 
   const handleSaveReport = async () => {
@@ -241,7 +276,9 @@ export default function PMStation() {
           <button onClick={handleRefresh} disabled={refreshing} className="p-2 bg-white dark:bg-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500 disabled:opacity-50">
             <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           </button>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 shadow-lg transition"><Plus size={16} /> New Client</button>
+          {canEditProject() && (
+            <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 shadow-lg transition"><Plus size={16} /> New Client</button>
+          )}
         </div>
       </div>
 
@@ -383,6 +420,36 @@ export default function PMStation() {
             </div>
             <div className="p-8 flex-1 overflow-y-auto space-y-6">
               <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Stage</label><div className="grid grid-cols-2 gap-2">{['New / In Progress', 'Almost Ready', 'Ready', 'Launched', 'Stuck / On Hold'].map(cat => (<button key={cat} onClick={() => setFormData({ ...formData, category: cat })} className={`p-2 rounded border text-xs font-bold transition ${formData.category === cat ? getCategoryStyle(cat) + " ring-2 ring-offset-1 ring-gray-200" : "bg-white dark:bg-gray-800 border-gray-200 text-gray-500 hover:bg-gray-50"}`}>{cat}</button>))}</div></div>
+
+              {/* Last Communication Via */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Last Communication Via</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Slack', 'Email', 'Google Meet', 'Huddle'].map(method => {
+                    const methodKey = method.toLowerCase().replace(' ', '_');
+                    const isSelected = formData.last_communication_via?.includes(methodKey);
+                    return (
+                      <button
+                        key={method}
+                        onClick={() => {
+                          const current = formData.last_communication_via || [];
+                          const updated = isSelected
+                            ? current.filter(m => m !== methodKey)
+                            : [...current, methodKey];
+                          setFormData({ ...formData, last_communication_via: updated });
+                        }}
+                        className={`px-3 py-1.5 rounded text-xs font-medium transition ${isSelected
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                      >
+                        {method}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
                 <input
                   type="checkbox"
@@ -419,7 +486,7 @@ export default function PMStation() {
                   placeholder="Explain the blocker..."
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Last Call</label><input type="date" className="w-full border rounded-lg p-2.5 text-sm outline-none" value={formData.last_contact_date} onChange={e => setFormData({ ...formData, last_contact_date: e.target.value })} /></div><div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Next Call</label><input type="date" className="w-full border rounded-lg p-2.5 text-sm outline-none" value={formData.next_call} onChange={e => setFormData({ ...formData, next_call: e.target.value })} /></div></div>
+              <div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Last Call</label><input type="date" className="w-full border rounded-lg p-2.5 text-sm outline-none" value={formData.last_contact_date} onChange={e => handleLastCallChange(e.target.value)} /></div><div><label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Next Call</label><input type="date" className="w-full border rounded-lg p-2.5 text-sm outline-none" value={formData.next_call} onChange={e => setFormData({ ...formData, next_call: e.target.value })} /></div></div>
 
 
               <div className="grid grid-cols-2 gap-4">
@@ -476,6 +543,13 @@ export default function PMStation() {
           </div>
         </div>
       )}
+
+      {/* Communication Method Modal */}
+      <CommunicationMethodModal
+        isOpen={showCommMethodModal}
+        onClose={handleCommMethodCancel}
+        onConfirm={handleCommMethodConfirm}
+      />
     </div>
   );
 }

@@ -265,6 +265,90 @@ def update_team_members():
         return jsonify({"error": str(e)}), 500
 
 
+@settings_api.route('/team/sync-slack', methods=['POST'])
+@require_auth
+@require_role('superadmin', 'internal')
+def sync_slack_ids():
+    """
+    Automatically sync Slack user IDs by matching team member emails with Slack workspace users.
+    """
+    import json
+    from slack_sdk import WebClient
+    from slack_sdk.errors import SlackApiError
+    
+    try:
+        # Get Slack bot token
+        slack_token_result = admin_db.table("app_settings").select("value").eq("key", "SLACK_BOT_TOKEN").execute()
+        if not slack_token_result.data or not slack_token_result.data[0].get('value'):
+            return jsonify({"error": "Slack bot token not configured"}), 400
+        
+        slack_token = slack_token_result.data[0]['value']
+        slack_client = WebClient(token=slack_token)
+        
+        # Fetch all Slack users
+        try:
+            slack_response = slack_client.users_list()
+            slack_users = slack_response['members']
+        except SlackApiError as e:
+            return jsonify({"error": f"Failed to fetch Slack users: {str(e)}"}), 500
+        
+        # Get current team members
+        team_result = admin_db.table("app_settings").select("value").eq("key", "TEAM_MEMBERS").execute()
+        if not team_result.data or not team_result.data[0].get('value'):
+            return jsonify({"error": "No team members found"}), 404
+        
+        team_members = json.loads(team_result.data[0]['value'])
+        
+        # Debug: Print team members and their emails
+        print(f"[SYNC] Found {len(team_members)} team members:")
+        for m in team_members:
+            print(f"  - {m.get('name')}: email={m.get('email')}")
+        
+        # Debug: Print Slack users
+        print(f"[SYNC] Found {len(slack_users)} Slack users")
+        slack_emails = [u.get('profile', {}).get('email') for u in slack_users if not u.get('deleted') and not u.get('is_bot')]
+        print(f"[SYNC] Slack emails: {slack_emails[:5]}...")  # Show first 5
+        
+        # Match team members with Slack users by email
+        matched_count = 0
+        updated_members = []
+        
+        for member in team_members:
+            member_email = member.get('email', '').lower()
+            slack_id = member.get('slack_user_id')  # Keep existing if already set
+            
+            if member_email:
+                # Find matching Slack user
+                for slack_user in slack_users:
+                    if slack_user.get('deleted') or slack_user.get('is_bot'):
+                        continue
+                    
+                    slack_email = slack_user.get('profile', {}).get('email', '').lower()
+                    if slack_email and slack_email == member_email:
+                        slack_id = slack_user['id']
+                        matched_count += 1
+                        break
+            
+            # Update member with slack_user_id
+            updated_member = {**member, 'slack_user_id': slack_id}
+            updated_members.append(updated_member)
+        
+        # Save updated team members
+        admin_db.table("app_settings").update({
+            "value": json.dumps(updated_members),
+            "updated_by": g.user['id']
+        }).eq("key", "TEAM_MEMBERS").execute()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Synced {matched_count} out of {len(team_members)} team members with Slack",
+            "matched": matched_count,
+            "total": len(team_members)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @settings_api.route('/team/add', methods=['POST'])
 @require_auth
 @require_role('superadmin')

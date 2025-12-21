@@ -2,15 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { useProjects } from '../context/ProjectsContext';
 import { useAuth } from '../context/AuthContext';
 import TerminalLoader from '../components/ui/TerminalLoader';
 import {
     ArrowLeft, MessageSquare, ClipboardList, Save, Clock,
     Hash, Code, User, Globe, Key, CheckSquare,
-    Plus, Trash2, Users, ExternalLink, Loader, AlertCircle, ChevronDown, Mail
+    Plus, Trash2, Users, ExternalLink, Loader, AlertCircle, ChevronDown, Mail, RefreshCw
 } from 'lucide-react';
 import { CHECKLIST_GROUPS, ALL_CHECKLIST_ITEMS, BLOCKER_OPTS, parseBlocker } from '../utils/constants';
+import AIChat from '../components/AIChat';
+import CommunicationMethodModal from '../components/CommunicationMethodModal';
 
 export default function ProjectDetails() {
     const { id } = useParams();
@@ -26,12 +29,18 @@ export default function ProjectDetails() {
     const [countsLoading, setCountsLoading] = useState(false);
 
     const { showToast } = useToast();
-    const { canEditProject, canViewInternalChannel } = useAuth();
+    const { confirm } = useConfirm();
+    const { user, canEditProject, canViewInternalChannel } = useAuth();
     const [formData, setFormData] = useState({});
     const [checklist, setChecklist] = useState({});
+    const [showCommMethodModal, setShowCommMethodModal] = useState(false);
+    const [pendingLastCallDate, setPendingLastCallDate] = useState(null);
     const [stakeholders, setStakeholders] = useState([]);
+    const [syncingStakeholders, setSyncingStakeholders] = useState(false);
+    const [expandedRoles, setExpandedRoles] = useState({ 'Merchant': true, 'Internal': false, 'Shopline Team': false }); // Only Merchant expanded by default
     const [teamMembers, setTeamMembers] = useState([]); // Internal team for PM/Dev dropdowns
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const canAccessSettings = user?.role === 'superadmin' || user?.role === 'internal';
 
     useEffect(() => {
         if (globalLoading && projects.length === 0) return; // Wait for global load
@@ -67,11 +76,28 @@ export default function ProjectDetails() {
             const orderedChecklist = {};
             ALL_CHECKLIST_ITEMS.forEach(key => orderedChecklist[key] = dbChecklist[key] || false);
             setChecklist(orderedChecklist);
-            setStakeholders(found.stakeholders || []);
+            // Don't set stakeholders from project JSON anymore
             setLoading(false); // Stop loading UI immediately for metadata
         }
 
-        // 2. Fetch Channel Members for stakeholders
+        // 2. Fetch Stakeholders from database
+        const fetchStakeholders = async () => {
+            try {
+                const res = await api.get(`/projects/${id}/stakeholders`);
+                // Sort stakeholders: Merchant first, then Internal, then Shopline Team
+                const sorted = (res.data || []).sort((a, b) => {
+                    const roleOrder = { 'Merchant': 1, 'Internal': 2, 'Shopline Team': 3 };
+                    return (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99);
+                });
+                setStakeholders(sorted);
+            } catch (e) {
+                console.error('Failed to fetch stakeholders:', e);
+                setStakeholders([]);
+            }
+        };
+        fetchStakeholders();
+
+        // 3. Fetch Channel Members for stakeholders
         const fetchChannelMembers = async () => {
             try {
                 const membersRes = await api.get(`/projects/${id}/channel-members`);
@@ -83,7 +109,7 @@ export default function ProjectDetails() {
         };
         fetchChannelMembers();
 
-        // 3. Fetch Team Members for PM/Dev dropdowns
+        // 4. Fetch Team Members for PM/Dev dropdowns
         const fetchTeam = async () => {
             try {
                 const tRes = await api.get('/settings/team');
@@ -136,6 +162,32 @@ export default function ProjectDetails() {
         };
         loadMessages();
     }, [id, visibilityTab, activeTab]);
+
+    // Handle Last Call date change - trigger modal
+    const handleLastCallChange = (newDate) => {
+        const oldDate = formData.last_contact_date || '';
+        if (newDate && (!oldDate || newDate !== oldDate)) {
+            setPendingLastCallDate(newDate);
+            setShowCommMethodModal(true);
+        } else {
+            setFormData({ ...formData, last_contact_date: newDate });
+        }
+    };
+
+    const handleCommMethodConfirm = (methods) => {
+        setFormData({
+            ...formData,
+            last_contact_date: pendingLastCallDate,
+            last_communication_via: methods
+        });
+        setShowCommMethodModal(false);
+        setPendingLastCallDate(null);
+    };
+
+    const handleCommMethodCancel = () => {
+        setShowCommMethodModal(false);
+        setPendingLastCallDate(null);
+    };
 
     const handleSaveReport = async () => {
         try {
@@ -402,6 +454,7 @@ export default function ProjectDetails() {
                     Communication ({countsLoading ? '...' : messageCounts.internal + messageCounts.external + messageCounts.emails})
                 </button>
                 <button onClick={() => setActiveTab('settings')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'settings' ? 'border-black' : 'border-transparent text-gray-400 dark:text-gray-500'}`}>Project Settings</button>
+                <button onClick={() => setActiveTab('ai')} className={`px-6 py-4 font-bold text-sm border-b-2 transition whitespace-nowrap ${activeTab === 'ai' ? 'border-black' : 'border-transparent text-gray-400 dark:text-gray-500'}`}>AI Assistant</button>
             </div>
 
             {activeTab === 'report' && (
@@ -435,7 +488,37 @@ export default function ProjectDetails() {
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mt-4">
+                                    <div><label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Last Call</label><input type="date" className="w-full border border-gray-300 rounded p-2 text-sm" value={formData.last_contact_date} onChange={e => handleLastCallChange(e.target.value)} /></div>
                                     <div><label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Next Call</label><input type="date" className="w-full border border-gray-300 rounded p-2 text-sm" value={formData.next_call} onChange={e => setFormData({ ...formData, next_call: e.target.value })} /></div>
+                                </div>
+
+                                {/* Last Communication Via */}
+                                <div className="mt-4">
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Last Communication Via</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Slack', 'Email', 'Google Meet', 'Huddle'].map(method => {
+                                            const methodKey = method.toLowerCase().replace(' ', '_');
+                                            const isSelected = formData.last_communication_via?.includes(methodKey);
+                                            return (
+                                                <button
+                                                    key={method}
+                                                    onClick={() => {
+                                                        const current = formData.last_communication_via || [];
+                                                        const updated = isSelected
+                                                            ? current.filter(m => m !== methodKey)
+                                                            : [...current, methodKey];
+                                                        setFormData({ ...formData, last_communication_via: updated });
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded text-xs font-medium transition ${isSelected
+                                                        ? 'bg-blue-500 text-white shadow-sm'
+                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                        }`}
+                                                >
+                                                    {method}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -562,76 +645,115 @@ export default function ProjectDetails() {
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-lg flex items-center gap-2"><Users size={18} /> Stakeholders</h3>
-                            <button onClick={addStakeholder} className="text-xs font-bold flex items-center gap-1 bg-black text-white px-3 py-1.5 rounded hover:bg-gray-800"><Plus size={12} /> Add</button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={async () => {
+                                        setSyncingStakeholders(true);
+                                        try {
+                                            await api.post(`/projects/${id}/sync-stakeholders`);
+                                            // Refresh stakeholders
+                                            const res = await api.get(`/projects/${id}/stakeholders`);
+                                            // Sort stakeholders: Merchant first, then Internal, then Shopline Team
+                                            const sorted = (res.data || []).sort((a, b) => {
+                                                const roleOrder = { 'Merchant': 1, 'Internal': 2, 'Shopline Team': 3 };
+                                                return (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99);
+                                            });
+                                            setStakeholders(sorted);
+                                            showToast('Stakeholders synced from channels!', 'success');
+                                        } catch (e) {
+                                            showToast('Failed to sync stakeholders', 'error');
+                                        } finally {
+                                            setSyncingStakeholders(false);
+                                        }
+                                    }}
+                                    disabled={syncingStakeholders}
+                                    className="text-xs font-bold flex items-center gap-1 bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 disabled:opacity-50"
+                                >
+                                    {syncingStakeholders ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                                    {syncingStakeholders ? 'Syncing...' : 'Sync from Channels'}
+                                </button>
+                                <button onClick={addStakeholder} className="text-xs font-bold flex items-center gap-1 bg-black text-white px-3 py-1.5 rounded hover:bg-gray-800"><Plus size={12} /> Add</button>
+                            </div>
                         </div>
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                            {stakeholders.map((person, index) => (
-                                <div key={index} className="bg-gray-50 dark:bg-gray-900 p-3 rounded border border-gray-100 space-y-2">
-                                    {/* First Row - Name/Dropdown + Role */}
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex-1 min-w-0">
-                                            {person.isManual ? (
-                                                <input
-                                                    placeholder="Name"
-                                                    className="w-full bg-white dark:bg-gray-800 text-sm font-bold outline-none border border-gray-200 rounded px-2 py-1.5"
-                                                    value={person.name}
-                                                    onChange={(e) => updateStakeholder(index, 'name', e.target.value)}
-                                                />
-                                            ) : (
-                                                <select
-                                                    className="w-full bg-white dark:bg-gray-800 text-sm font-bold outline-none border border-gray-200 rounded px-2 py-1.5"
-                                                    value={person.name}
-                                                    onChange={(e) => updateStakeholder(index, 'name', e.target.value)}
+                        <div className="space-y-2">
+                            {stakeholders.length === 0 ? (
+                                <p className="text-gray-400 text-sm text-center py-4">No stakeholders added yet. Click "Sync from Channels" to auto-add from external channel.</p>
+                            ) : (
+                                <>
+                                    {/* Accordion for stakeholders by role */}
+                                    {['Merchant', 'Internal', 'Shopline Team'].map(roleGroup => {
+                                        const groupStakeholders = stakeholders.filter(p => p.role === roleGroup);
+                                        if (groupStakeholders.length === 0) return null;
+                                        const isExpanded = expandedRoles[roleGroup];
+
+                                        return (
+                                            <div key={roleGroup} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                                {/* Accordion Header */}
+                                                <button
+                                                    onClick={() => setExpandedRoles({ ...expandedRoles, [roleGroup]: !isExpanded })}
+                                                    className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                                                 >
-                                                    <option value="">Select from channel...</option>
-                                                    {Array.isArray(userMap) && userMap.map((member) => <option key={member.slack_id} value={member.name}>{member.name}</option>)}
-                                                </select>
-                                            )}
-                                        </div>
-                                        <select
-                                            className="bg-white dark:bg-gray-800 text-xs border border-gray-200 rounded px-2 py-1.5 outline-none"
-                                            value={person.role}
-                                            onChange={(e) => updateStakeholder(index, 'role', e.target.value)}
-                                        >
-                                            <option>Merchant</option>
-                                            <option>Shopline Rep</option>
-                                            <option>Agency Partner</option>
-                                            <option>Other</option>
-                                        </select>
-                                        <button
-                                            onClick={() => toggleManualEntry(index)}
-                                            className="text-gray-400 dark:text-gray-500 hover:text-blue-600 text-xs whitespace-nowrap px-1"
-                                            title={person.isManual ? "Switch to dropdown" : "Manual entry"}
-                                        >
-                                            {person.isManual ? '🔽' : '✏️'}
-                                        </button>
-                                        <button onClick={() => removeStakeholder(index)} className="text-gray-400 dark:text-gray-500 hover:text-red-500"><Trash2 size={14} /></button>
-                                    </div>
-                                    {/* Second Row - Alias + Title + Email */}
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            placeholder="Alias (optional)"
-                                            className="flex-1 min-w-0 bg-white dark:bg-gray-800 text-xs outline-none border border-gray-200 rounded px-2 py-1.5"
-                                            value={person.alias || ''}
-                                            onChange={(e) => updateStakeholder(index, 'alias', e.target.value)}
-                                        />
-                                        <input
-                                            placeholder="Title (CEO, CTO...)"
-                                            className="flex-1 min-w-0 bg-white dark:bg-gray-800 text-xs outline-none border border-gray-200 rounded px-2 py-1.5"
-                                            value={person.title || ''}
-                                            onChange={(e) => updateStakeholder(index, 'title', e.target.value)}
-                                        />
-                                        <input
-                                            placeholder="email"
-                                            className="flex-1 min-w-0 bg-white dark:bg-gray-800 text-xs outline-none border border-gray-200 rounded px-2 py-1.5"
-                                            value={person.email}
-                                            onChange={(e) => updateStakeholder(index, 'email', e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                            {stakeholders.length === 0 && (
-                                <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No stakeholders added yet</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <ChevronDown size={16} className={`transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+                                                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                                            {roleGroup}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                            ({groupStakeholders.length})
+                                                        </span>
+                                                    </div>
+                                                </button>
+
+                                                {/* Accordion Content */}
+                                                {isExpanded && (
+                                                    <div className="p-3 space-y-2 bg-white dark:bg-gray-900">
+                                                        {groupStakeholders.map((person, index) => (
+                                                            <div key={person.id || index} className="bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-100 dark:border-gray-700">
+                                                                <div className="flex items-start justify-between">
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                            <span className="font-bold text-sm">{person.name}</span>
+                                                                            {person.slack_user_id && (
+                                                                                <span className="text-xs text-green-600" title="Synced with Slack">✓</span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                                                                            {person.email && <div>📧 {person.email}</div>}
+                                                                            {person.phone && <div>📞 {person.phone}</div>}
+                                                                            {person.company && <div>🏢 {person.company}</div>}
+                                                                        </div>
+                                                                    </div>
+                                                                    {canAccessSettings && (
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                try {
+                                                                                    await api.delete(`/projects/${id}/stakeholders/${person.id}`);
+                                                                                    const res = await api.get(`/projects/${id}/stakeholders`);
+                                                                                    // Sort after delete
+                                                                                    const sorted = (res.data || []).sort((a, b) => {
+                                                                                        const roleOrder = { 'Merchant': 1, 'Internal': 2, 'Shopline Team': 3 };
+                                                                                        return (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99);
+                                                                                    });
+                                                                                    setStakeholders(sorted);
+                                                                                    showToast('Stakeholder removed', 'success');
+                                                                                } catch (e) {
+                                                                                    showToast('Failed to remove stakeholder', 'error');
+                                                                                }
+                                                                            }}
+                                                                            className="text-gray-400 dark:text-gray-500 hover:text-red-500"
+                                                                        >
+                                                                            <Trash2 size={14} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </>
                             )}
                         </div>
                     </div>
@@ -714,6 +836,49 @@ export default function ProjectDetails() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Danger Zone - Delete Project (Superadmin Only) */}
+                            {user?.role === 'superadmin' && (
+                                <div className="pt-6 border-t border-red-200">
+                                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-600">
+                                        <AlertCircle size={18} /> Danger Zone
+                                    </h3>
+                                    <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200">
+                                        <p className="text-sm text-red-700 dark:text-red-400 mb-3">
+                                            Deleting this project will permanently remove all associated data including messages, stakeholders, and history. This action cannot be undone.
+                                        </p>
+                                        <button
+                                            onClick={async () => {
+                                                const confirmed = await confirm({
+                                                    title: 'Delete Project',
+                                                    message: `Are you sure you want to delete "${project.client_name}"? This action cannot be undone!`,
+                                                    variant: 'danger'
+                                                });
+                                                if (!confirmed) return;
+
+                                                const doubleConfirmed = await confirm({
+                                                    title: 'Final Confirmation',
+                                                    message: 'This will permanently delete ALL project data. Are you absolutely sure?',
+                                                    variant: 'danger'
+                                                });
+                                                if (!doubleConfirmed) return;
+
+                                                try {
+                                                    await api.delete(`/projects/${id}`);
+                                                    showToast('Project deleted successfully', 'success');
+                                                    // Navigate back to dashboard
+                                                    window.location.href = '/';
+                                                } catch (err) {
+                                                    showToast('Failed to delete project: ' + err.message, 'error');
+                                                }
+                                            }}
+                                            className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 inline-flex items-center gap-2 transition"
+                                        >
+                                            <Trash2 size={16} /> Delete Project
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Save Button */}
                             <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
@@ -819,6 +984,20 @@ export default function ProjectDetails() {
                     </div>
                 )
             }
+
+            {/* AI Assistant Tab */}
+            {activeTab === 'ai' && (
+                <div className="p-6">
+                    <AIChat projectId={id} />
+                </div>
+            )}
+
+            {/* Communication Method Modal */}
+            <CommunicationMethodModal
+                isOpen={showCommMethodModal}
+                onClose={handleCommMethodCancel}
+                onConfirm={handleCommMethodConfirm}
+            />
         </div >
     );
 }

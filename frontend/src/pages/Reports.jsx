@@ -6,6 +6,7 @@ import {
     ClipboardList, BarChart3, MessageSquare, Sparkles, Calendar, Trash2, X
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import jsPDF from 'jspdf';
 
 export default function Reports() {
@@ -24,20 +25,27 @@ export default function Reports() {
     const [teamMembers, setTeamMembers] = useState([]);
     const [userFilter, setUserFilter] = useState('all'); // 'all', 'internal', 'external'
 
+    // Stage filtering
+    const [selectedStages, setSelectedStages] = useState(['all']);
+    const [excludedProjects, setExcludedProjects] = useState([]);
+    const [projects, setProjects] = useState([]);
+
     useEffect(() => {
         fetchReportTypes();
         fetchReportHistory();
         fetchTeamMembers();
+        fetchProjects();
     }, []);
 
     const fetchTeamMembers = async () => {
         try {
-            const res = await api.get('/settings/team');
-            // Filter out merchant users, keep only internal (flyrank/powercommerce) and external (shopline)
+            const res = await api.get('/contacts');
+            // Keep only internal team members (not merchants)
             const filtered = (res.data || []).filter(member => {
-                const role = member.role?.toLowerCase();
-                return role === 'internal' || role === 'shopline';
+                const role = member.role?.toLowerCase() || '';
+                return role === 'internal' || role === 'pm' || role === 'dev' || role === 'both';
             });
+            console.log('Team members loaded:', filtered);
             setTeamMembers(filtered);
         } catch (err) {
             console.error('Failed to fetch team members');
@@ -68,6 +76,38 @@ export default function Reports() {
         }
     };
 
+    const fetchProjects = async () => {
+        try {
+            const res = await api.get('/projects');
+            setProjects(res.data || []);
+        } catch (err) {
+            console.error('Failed to fetch projects');
+        }
+    };
+
+    const handleStageToggle = (stage) => {
+        console.log('Toggling stage:', stage, 'Current stages:', selectedStages);
+        if (stage === 'all') {
+            setSelectedStages(['all']);
+        } else {
+            const newStages = selectedStages.filter(s => s !== 'all');
+            if (newStages.includes(stage)) {
+                const filtered = newStages.filter(s => s !== stage);
+                setSelectedStages(filtered.length === 0 ? ['all'] : filtered);
+            } else {
+                setSelectedStages([...newStages, stage]);
+            }
+        }
+    };
+
+    const handleProjectExclusionToggle = (projectId) => {
+        if (excludedProjects.includes(projectId)) {
+            setExcludedProjects(excludedProjects.filter(id => id !== projectId));
+        } else {
+            setExcludedProjects([...excludedProjects, projectId]);
+        }
+    };
+
     const handleGenerateReport = async () => {
         if (!selectedType) return;
 
@@ -77,7 +117,9 @@ export default function Reports() {
 
         try {
             const res = await api.post('/reports/generate', {
-                report_type: selectedType
+                report_type: selectedType,
+                stages: selectedStages.includes('all') ? null : selectedStages,
+                excluded_projects: excludedProjects
             });
             setReport(res.data);
             // Refresh history after generating new report
@@ -92,16 +134,28 @@ export default function Reports() {
     const [sendingSlack, setSendingSlack] = useState(false);
 
     const { showToast } = useToast();
+    const { confirm } = useConfirm();
 
     const handleSendToSlack = async () => {
         if (!report?.content) return;
         setSendingSlack(true);
         try {
-            await api.post('/reports/send-to-slack', {
+            const payload = {
                 content: report.content,
                 report_type: report.report_type
-            });
-            showToast('Report sent to Slack channel #operations!', 'success');
+            };
+
+            // Add user_id if sending to specific user
+            if (sendTo === 'user' && selectedUser) {
+                payload.user_id = selectedUser; // This is the slack_user_id
+            }
+
+            await api.post('/reports/send-to-slack', payload);
+
+            const message = sendTo === 'user'
+                ? 'Report sent as DM!'
+                : 'Report sent to Slack channel #operations!';
+            showToast(message, 'success');
         } catch (e) {
             showToast(e.response?.data?.error || 'Failed to send to Slack', 'error');
         } finally {
@@ -134,12 +188,24 @@ export default function Reports() {
 
     const handleDeleteReport = async (reportId) => {
         console.log("Attempting to delete report:", reportId);
-        if (!confirm('Are you sure you want to delete this report?')) return;
+
+        const confirmed = await confirm({
+            title: 'Delete Report',
+            message: 'Are you sure you want to delete this report? This action cannot be undone.',
+            variant: 'danger'
+        });
+
+        if (!confirmed) return;
 
         try {
             await api.delete(`/reports/history/${reportId}`);
+            // Clear selected report if it was the one deleted
+            if (selectedHistoryReport?.report_id === reportId) {
+                setSelectedHistoryReport(null);
+            }
             showToast('Report deleted!', 'success');
-            fetchReportHistory(); // Refresh the list
+            // Refresh the list
+            await fetchReportHistory();
         } catch (e) {
             console.error("Delete failed:", e);
             showToast(e.response?.data?.error || 'Failed to delete report', 'error');
@@ -335,24 +401,77 @@ export default function Reports() {
                             className="w-full px-4 py-3 bg-white dark:bg-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-500 outline-none"
                         >
                             <option value="">Select a user...</option>
-                            <optgroup label="Internal Team">
-                                {teamMembers.filter(m => m.email && (m.email.includes('@flyrank.com') || m.email.includes('@powercommerce.com'))).map(m => (
-                                    <option key={m.email} value={m.email}>{m.name}</option>
-                                ))}
-                            </optgroup>
-                            <optgroup label="External Team">
-                                {teamMembers.filter(m => m.email && m.email.includes('@shopline.com')).map(m => (
-                                    <option key={m.email} value={m.email}>{m.name}</option>
-                                ))}
-                            </optgroup>
+                            {teamMembers.filter(m => m.slack_user_id).length === 0 ? (
+                                <option disabled>No team members with Slack IDs (Click "Sync Slack IDs" in Settings)</option>
+                            ) : (
+                                teamMembers.filter(m => m.slack_user_id).map(m => (
+                                    <option key={m.slack_user_id} value={m.slack_user_id}>
+                                        {m.name} ✓
+                                    </option>
+                                ))
+                            )}
                         </select>
                     )}
 
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                         {sendTo === 'channel'
-                            ? 'Report will be sent to #operations Slack channel'
+                            ? 'Report will be sent to #leo-playground Slack channel'
                             : 'Report will be sent as a direct message to the selected user'}
                     </p>
+                </div>
+
+                {/* Stage Filter Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mt-6">
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-4">Filter by Project Stage</h3>
+
+                    {/* Stage Checkboxes */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={selectedStages.includes('all')} onChange={() => handleStageToggle('all')} className="w-4 h-4 text-blue-600 rounded" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">All Projects</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={selectedStages.includes('New / In Progress')} onChange={() => handleStageToggle('New / In Progress')} className="w-4 h-4 text-blue-600 rounded" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">New / In Progress</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={selectedStages.includes('Almost Ready')} onChange={() => handleStageToggle('Almost Ready')} className="w-4 h-4 text-yellow-600 rounded" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Almost Ready</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={selectedStages.includes('Ready')} onChange={() => handleStageToggle('Ready')} className="w-4 h-4 text-green-600 rounded" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Ready</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={selectedStages.includes('Launched')} onChange={() => handleStageToggle('Launched')} className="w-4 h-4 text-purple-600 rounded" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Launched</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={selectedStages.includes('Stuck / On Hold')} onChange={() => handleStageToggle('Stuck / On Hold')} className="w-4 h-4 text-red-600 rounded" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Stuck / On Hold</span>
+                        </label>
+                    </div>
+
+                    {/* Project Exclusion */}
+                    <details className="mt-4">
+                        <summary className="cursor-pointer text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                            Exclude Specific Projects ({excludedProjects.length} excluded)
+                        </summary>
+                        <div className="mt-3 max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
+                            {projects.length === 0 ? (
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Loading projects...</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {projects.map(p => (
+                                        <label key={p.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-1 rounded">
+                                            <input type="checkbox" checked={excludedProjects.includes(p.id)} onChange={() => handleProjectExclusionToggle(p.id)} className="w-4 h-4 text-red-600 rounded" />
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">{p.client_name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </details>
                 </div>
 
                 {/* Generate Button */}
@@ -521,11 +640,28 @@ export default function Reports() {
                                             </button>
                                         </td>
                                         <td className="p-3">
-                                            <span className="text-sm">
-                                                {reportTypes.find(t => t.id === histReport.report_type)?.icon || '📄'}
-                                                {' '}
-                                                {reportTypes.find(t => t.id === histReport.report_type)?.name || histReport.report_type}
-                                            </span>
+                                            <div>
+                                                <span className="text-sm">
+                                                    {reportTypes.find(t => t.id === histReport.report_type)?.icon || '📄'}
+                                                    {' '}
+                                                    {reportTypes.find(t => t.id === histReport.report_type)?.name || histReport.report_type}
+                                                </span>
+                                                {/* Filter Info */}
+                                                {histReport.metadata && (
+                                                    <div className="mt-1 flex flex-wrap gap-1">
+                                                        {histReport.metadata.stages && histReport.metadata.stages !== 'all' && (
+                                                            <span className="text-[10px] px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+                                                                Stages: {Array.isArray(histReport.metadata.stages) ? histReport.metadata.stages.join(', ') : histReport.metadata.stages}
+                                                            </span>
+                                                        )}
+                                                        {histReport.metadata.excluded_projects && histReport.metadata.excluded_projects.length > 0 && (
+                                                            <span className="text-[10px] px-2 py-0.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-full font-medium">
+                                                                Excluded: {histReport.metadata.excluded_projects.length}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="p-3 text-sm text-gray-600 dark:text-gray-300">
                                             {new Date(histReport.generated_at).toLocaleDateString()}

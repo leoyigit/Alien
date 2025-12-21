@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import api from '../services/api';
 import { Send, Loader, Trash2, Bot, User as UserIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -7,6 +8,7 @@ import remarkGfm from 'remark-gfm';
 
 export default function AlienGPT() {
     const { user } = useAuth();
+    const { confirm } = useConfirm();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -75,8 +77,13 @@ What would you like to know?`,
         }
     };
 
-    const handleClear = () => {
-        if (window.confirm('Clear all messages?')) {  // Keep for now, will enhance later
+    const handleClear = async () => {
+        const confirmed = await confirm({
+            title: 'Clear Messages',
+            message: 'Clear all messages?',
+            variant: 'warning'
+        });
+        if (confirmed) {
             setMessages([{
                 role: 'assistant',
                 content: `Conversation cleared! How can I help you?`,

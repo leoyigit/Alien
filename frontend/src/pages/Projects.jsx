@@ -12,11 +12,13 @@ import { CHECKLIST_GROUPS, ALL_CHECKLIST_ITEMS, BLOCKER_OPTS, parseBlocker } fro
 export default function Projects() {
   const { projects, loading, fetchProjects } = useProjects();
   const { showToast } = useToast();
-  const { canAccessProject } = useAuth();
+  const { canAccessProject, user } = useAuth();
   const [activeFilter, setActiveFilter] = useState('All');
   const [syncing, setSyncing] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [statusDropdown, setStatusDropdown] = useState(null); // Track which project's dropdown is open
+  const [globalSyncing, setGlobalSyncing] = useState(false);
+  const [globalSyncMessage, setGlobalSyncMessage] = useState(null);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(null); // Track which project's dropdown is open
 
   // Filter & Search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +30,26 @@ export default function Projects() {
     setRefreshing(true);
     await fetchProjects(true);
     setRefreshing(false);
+  };
+
+  const handleGlobalSync = async () => {
+    setGlobalSyncing(true);
+    setGlobalSyncMessage('Starting global sync...');
+
+    try {
+      const res = await api.post('/sync/global');
+      setGlobalSyncMessage('Sync completed successfully!');
+      showToast(res.data.message, 'success');
+      setTimeout(() => {
+        setGlobalSyncing(false);
+        setGlobalSyncMessage(null);
+        fetchProjects(true);
+      }, 2000);
+    } catch (e) {
+      setGlobalSyncMessage(null);
+      showToast(e.response?.data?.error || 'Global sync failed', 'error');
+      setGlobalSyncing(false);
+    }
   };
 
   // Apply access control first (RLS-based filtering)
@@ -120,11 +142,11 @@ export default function Projects() {
 
   const getTheme = (category) => {
     switch (category) {
-      case 'Launched': return { card: 'bg-purple-50 border-purple-200', badge: 'bg-purple-100 text-purple-700' };
-      case 'Stuck / On Hold': return { card: 'bg-red-50 border-red-200', badge: 'bg-red-100 text-red-700' };
-      case 'Almost Ready': return { card: 'bg-yellow-50 border-yellow-200', badge: 'bg-yellow-100 text-yellow-800' };
-      case 'Ready': return { card: 'bg-green-50 border-green-200', badge: 'bg-green-100 text-green-700' };
-      default: return { card: 'bg-white dark:bg-gray-800 border-gray-200', badge: 'bg-blue-100 text-blue-700' };
+      case 'Launched': return { card: 'bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-500', badge: 'bg-purple-100 text-purple-700' };
+      case 'Stuck / On Hold': return { card: 'bg-white dark:bg-gray-800 border-red-200 dark:border-red-500', badge: 'bg-red-100 text-red-700' };
+      case 'Almost Ready': return { card: 'bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-500', badge: 'bg-yellow-100 text-yellow-800' };
+      case 'Ready': return { card: 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-500', badge: 'bg-green-100 text-green-700' };
+      default: return { card: 'bg-white dark:bg-gray-800 border-gray-200 dark:border-blue-500', badge: 'bg-blue-100 text-blue-700' };
     }
   };
 
@@ -137,6 +159,23 @@ export default function Projects() {
       case 'Launched': return 'Live';
       default: return 'New';
     }
+  };
+
+  const getLaunchStatus = (launchDate, category) => {
+    // If project is already launched, show LIVE
+    if (category === 'Launched') {
+      return { label: 'LIVE', color: 'bg-purple-100 text-purple-700 border-purple-200' };
+    }
+
+    if (!launchDate) return { label: 'TBD', color: 'bg-gray-100 text-gray-600 border-gray-200' };
+
+    const now = new Date();
+    const launch = new Date(launchDate);
+    const daysUntil = Math.ceil((launch - now) / (1000 * 60 * 60 * 24));
+
+    if (daysUntil < 0) return { label: 'Overdue', color: 'bg-red-100 text-red-700 border-red-200' };
+    if (daysUntil <= 14) return { label: 'At Risk', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+    return { label: 'On Track', color: 'bg-green-100 text-green-700 border-green-200' };
   };
 
   if (loading && projects.length === 0) return <TerminalLoader />;
@@ -165,6 +204,16 @@ export default function Projects() {
           <button onClick={handleRefresh} disabled={refreshing} className="p-2 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50">
             <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
           </button>
+          {(user?.role === 'superadmin' || user?.role === 'internal') && (
+            <button
+              onClick={handleGlobalSync}
+              disabled={globalSyncing}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 font-bold"
+            >
+              <RefreshCw size={18} className={globalSyncing ? 'animate-spin' : ''} />
+              {globalSyncing ? 'Syncing All...' : 'Sync All Projects'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -257,16 +306,16 @@ export default function Projects() {
                       <h2 className="font-bold text-gray-900 dark:text-white leading-tight truncate pr-2">{p.client_name}</h2>
                       <div className="relative">
                         <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStatusDropdown(statusDropdown === p.id ? null : p.id); }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStatusDropdownOpen(statusDropdownOpen === p.id ? null : p.id); }}
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide mt-1 cursor-pointer hover:opacity-80 ${theme.badge}`}
                         >
                           <span className="hidden sm:inline">{p.category === 'Stuck / On Hold' ? 'On Hold' : (p.category || 'New')}</span>
                           <span className="sm:hidden">{getShortStatus(p.category)}</span>
                           <ChevronDown size={10} />
                         </button>
-                        {statusDropdown === p.id && (
+                        {statusDropdownOpen === p.id && (
                           <>
-                            <div className="fixed inset-0 z-40" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStatusDropdown(null); }} />
+                            <div className="fixed inset-0 z-40" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStatusDropdownOpen(null); }} />
                             <div className="absolute left-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 z-50 py-1">
                               {['New / In Progress', 'Almost Ready', 'Ready', 'Launched', 'Stuck / On Hold'].map(cat => (
                                 <button
@@ -278,7 +327,7 @@ export default function Projects() {
                                       await api.post(`/projects/${p.id}/update-report`, { updates: { category: cat } });
                                       showToast('Status updated!', 'success');
                                       fetchProjects(true);
-                                      setStatusDropdown(null);
+                                      setStatusDropdownOpen(null);
                                     } catch (err) { showToast('Failed to update', 'error'); }
                                   }}
                                   className={`w-full text-left px-3 py-1.5 text-[10px] font-semibold hover:bg-gray-50 dark:bg-gray-900 ${p.category === cat ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
@@ -290,13 +339,36 @@ export default function Projects() {
                           </>
                         )}
                       </div>
+
+                      {/* Launch Status & Date - Below Stage */}
+                      {(() => {
+                        const launchStatus = getLaunchStatus(p.launch_date_public, p.category);
+                        return (
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold border ${launchStatus.color}`}>
+                              {launchStatus.label}
+                            </span>
+                            {p.launch_date_public && (
+                              <span className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">
+                                {new Date(p.launch_date_public).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
-                  {/* Progress % (Right Aligned) */}
-                  <div className="flex flex-col items-end">
-                    <span className="text-2xl font-black text-gray-200">{progress}%</span>
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider hidden sm:inline">Migration</span>
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider sm:hidden">Migr.</span>
+                  <div className="flex flex-col items-end gap-1.5">
+                    {/* Migration Progress */}
+                    <div className="bg-gray-100 dark:bg-gray-700 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600">
+                      <div className="text-xl font-black text-gray-900 dark:text-white leading-none">{progress}%</div>
+                      <div className="text-[8px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Migration</div>
+                    </div>
+                    {/* Team Info */}
+                    <div className="text-[9px] text-gray-500 dark:text-gray-400 text-right">
+                      <div className="font-bold">PM: {p.owner || 'Unassigned'}</div>
+                      <div className="font-bold">Dev: {p.developer || 'Unassigned'}</div>
+                    </div>
                   </div>
                 </div>
               </div>
