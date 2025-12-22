@@ -19,29 +19,35 @@ def sync_emails(project_id: str, last_sync: Optional[str] = None) -> List[Dict]:
     Returns:
         List of formatted email entries
     """
-    emails_query = db.table("emails").select("*").eq("project_id", project_id)
-    
-    if last_sync:
-        # Incremental sync - only new emails
-        emails_query = emails_query.gte("created_at", last_sync)
-    
-    emails = emails_query.order("created_at", desc=False).execute()
-    
-    email_data = []
-    
-    for email in emails.data:
-        email_data.append({
-            'type': 'email',
-            'content': f"""From: {email.get('from_email', 'Unknown')}
+    try:
+        emails_query = db.table("emails").select("*").eq("project_id", project_id)
+        
+        if last_sync:
+            # Incremental sync - only new emails
+            emails_query = emails_query.gte("created_at", last_sync)
+        
+        emails = emails_query.order("created_at", desc=False).execute()
+        
+        email_data = []
+        
+        for email in emails.data:
+            email_data.append({
+                'type': 'email',
+                'content': f"""From: {email.get('from_email', 'Unknown')}
 To: {email.get('to_email', 'Unknown')}
 Date: {email.get('created_at', 'Unknown')}
 Subject: {email.get('subject', 'No subject')}
 
 {email.get('body', '')}""",
-            'timestamp': email.get('created_at', datetime.now().isoformat())
-        })
-    
-    return email_data
+                'timestamp': email.get('created_at', datetime.now().isoformat())
+            })
+        
+        return email_data
+    except Exception as e:
+        # If emails table doesn't exist or has issues, return empty list
+        print(f"Warning: Could not fetch emails for project {project_id}: {e}")
+        print("Hint: Run migration 025_create_emails_table.sql to create the emails table")
+        return []
 
 
 def format_emails_for_upload(emails: List[Dict]) -> str:
