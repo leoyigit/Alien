@@ -4,11 +4,20 @@ OpenAI integration service for managing vector stores and assistants.
 Handles creation, updates, and chat interactions with project-specific AI assistants.
 """
 from openai import OpenAI
-from app.core.config import settings
+from app.core.supabase import db
 from typing import List, Dict, Optional
 import json
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+def get_openai_client():
+    """Get OpenAI client with API key from database settings."""
+    try:
+        result = db.table("app_settings").select("value").eq("key", "OPENAI_API_KEY").execute()
+        if result.data and result.data[0].get('value'):
+            return OpenAI(api_key=result.data[0]['value'])
+    except Exception as e:
+        print(f"❌ Failed to get OpenAI API key from database: {e}")
+    return None
 
 
 def create_vector_store(name: str, description: str) -> str:
@@ -22,6 +31,10 @@ def create_vector_store(name: str, description: str) -> str:
     Returns:
         Vector store ID
     """
+    client = get_openai_client()
+    if not client:
+        raise Exception("OpenAI client not configured - check API key in settings")
+    
     vector_store = client.vector_stores.create(
         name=name,
         metadata={"description": description}
@@ -38,6 +51,10 @@ def upload_messages_to_vector_store(store_id: str, messages: List[Dict]) -> None
         messages: List of formatted Slack messages
     """
     from io import BytesIO
+    
+    client = get_openai_client()
+    if not client:
+        raise Exception("OpenAI client not configured - check API key in settings")
     
     # Format messages as text content
     content = "\n\n---\n\n".join([
@@ -72,6 +89,10 @@ def upload_text_to_vector_store(store_id: str, text_content: str, filename: str)
         filename: Name for the file
     """
     from io import BytesIO
+    
+    client = get_openai_client()
+    if not client:
+        raise Exception("OpenAI client not configured - check API key in settings")
     
     # Create a file-like object from the content
     file_obj = BytesIO(text_content.encode('utf-8'))
@@ -108,6 +129,10 @@ def create_assistant(
     Returns:
         Assistant ID
     """
+    client = get_openai_client()
+    if not client:
+        raise Exception("OpenAI client not configured - check API key in settings")
+    
     assistant = client.beta.assistants.create(
         name=name,
         instructions=instructions,
@@ -138,6 +163,10 @@ def chat_with_assistant(
     Returns:
         Dict with thread_id and response
     """
+    client = get_openai_client()
+    if not client:
+        raise Exception("OpenAI client not configured - check API key in settings")
+    
     # Create or use existing thread
     if not thread_id:
         thread = client.beta.threads.create()
@@ -176,9 +205,15 @@ def chat_with_assistant(
 
 def delete_vector_store(store_id: str) -> None:
     """Delete a vector store and all its files."""
+    client = get_openai_client()
+    if not client:
+        raise Exception("OpenAI client not configured - check API key in settings")
     client.vector_stores.delete(store_id)
 
 
 def delete_assistant(assistant_id: str) -> None:
     """Delete an assistant."""
+    client = get_openai_client()
+    if not client:
+        raise Exception("OpenAI client not configured - check API key in settings")
     client.beta.assistants.delete(assistant_id)
