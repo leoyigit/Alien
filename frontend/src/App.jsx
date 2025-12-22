@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Radio, ClipboardList, Settings, Archive, ChevronLeft, ChevronRight, LogOut, User, FileText, Sun, Moon, Bot, Handshake, Users } from 'lucide-react';
 
 import Scanner from './pages/Scanner';
@@ -18,7 +18,6 @@ import Contacts from './pages/Contacts';
 import AdminLogs from './pages/AdminLogs';
 import ThemeDebug from './pages/ThemeDebug';
 import AiChat from './components/ui/AiChat';
-import AlienGPTComponent from './components/AlienGPT';
 
 import { ToastProvider } from './context/ToastContext';
 import { ProjectsProvider } from './context/ProjectsContext';
@@ -70,7 +69,7 @@ function NavLink({ to, icon: Icon, label, isCollapsed }) {
 
 function AppLayout({ children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [showAlienGPT, setShowAlienGPT] = useState(false);
+  const navigate = useNavigate();
   const { user, logout, canAccessSettings } = useAuth();
 
   // Auto-collapse sidebar on narrow screens
@@ -183,18 +182,15 @@ function AppLayout({ children }) {
       </main>
 
       {/* AlienGPT Floating Button - Only for superadmin and internal */}
-      {!showAlienGPT && (user?.role === 'superadmin' || user?.role === 'internal') && (
+      {(user?.role === 'superadmin' || user?.role === 'internal') && (
         <button
-          onClick={() => setShowAlienGPT(true)}
+          onClick={() => navigate('/alien-gpt')}
           className="fixed bottom-4 right-4 z-40 p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200"
           title="Ask AlienGPT"
         >
           <Bot size={24} />
         </button>
       )}
-
-      {/* AlienGPT Component */}
-      <AlienGPTComponent isOpen={showAlienGPT} onClose={() => setShowAlienGPT(false)} />
     </div>
   );
 }
