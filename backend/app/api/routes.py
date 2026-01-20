@@ -364,22 +364,26 @@ def get_projects():
         
         # 1. Fetch projects based on role
         if user_role in ['superadmin', 'internal', 'shopline']:
-            # Show all projects (exclude partnerships)
-            projects = db.table("projects").select("*").eq("is_partnership", False).order("client_name").execute().data
+            # Show all projects (exclude partnerships and Shopline tracking project)
+            projects_query = db.table("projects").select("*").eq("is_partnership", False).order("client_name").execute().data
+            # Filter out Shopline in Python to be absolutely sure
+            projects = [p for p in projects_query if p['client_name'].lower().strip() != 'shopline']
         elif user_role == 'merchant':
             # Show only assigned projects
             assigned_projects = user.get('assigned_projects', [])
             if not assigned_projects:
                 return jsonify([])  # No projects assigned
             
-            # Fetch only assigned projects, exclude archived
-            projects = db.table("projects") \
+            # Fetch only assigned projects, exclude archived and Shopline
+            projects_query = db.table("projects") \
                 .select("*") \
                 .in_("id", assigned_projects) \
                 .eq("is_partnership", False) \
                 .neq("status", "archived") \
                 .order("client_name") \
                 .execute().data
+            
+            projects = [p for p in projects_query if p['client_name'].lower().strip() != 'shopline']
         else:
             return jsonify([])  # Unknown role
         
