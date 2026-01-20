@@ -65,26 +65,13 @@ def fetch_channel_messages(channel_id: str, last_sync: str = None) -> List[Dict]
     return messages
 
 
+from app.services.slack_utils import resolve_slack_user_name
+
 def get_user_name(user_id: str) -> str:
     """Get user's display name from contacts database or Slack."""
-    # First try to get from contacts database
-    try:
-        contact = db.table("contacts").select("name, email, company").eq("slack_user_id", user_id).execute()
-        if contact.data:
-            c = contact.data[0]
-            # Return name with company if available
-            if c.get('company'):
-                return f"{c['name']} ({c['company']})"
-            return c['name']
-    except:
-        pass
-    
-    # Fallback to Slack API
-    try:
-        user_info = slack_client.users_info(user=user_id)
-        return user_info['user']['real_name'] or user_info['user']['name']
-    except:
-        return f"User-{user_id}"
+    # Use consolidated logic
+    name = resolve_slack_user_name(user_id)
+    return name if name else f"User-{user_id}"
 
 
 def sync_internal_channel(project_id: str) -> List[Dict]:

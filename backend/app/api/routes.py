@@ -16,52 +16,14 @@ slack_client = WebClient(token=settings.SLACK_BOT_TOKEN)
 # 🛠️ HELPER FUNCTIONS
 # ---------------------------------------------------------
 
+from app.services.slack_utils import resolve_slack_user_name
+
 def resolve_slack_user(slack_user_id):
     """
-    1. Checks DB cache for user.
-    2. If missing, fetches from Slack API.
-    3. Auto-assigns 'internal' if email matches flyrank/powercommerce.
-    4. Saves to 'slack_users' table.
+    Deprecated: Use app.services.slack_utils.resolve_slack_user_name instead.
+    Kept for backward compatibility if imported elsewhere.
     """
-    try:
-        if not slack_user_id: 
-            return "Unknown"
-
-        # A. Check Cache (Database)
-        existing = db.table("slack_users").select("real_name").eq("slack_id", slack_user_id).execute()
-        if existing.data:
-            return existing.data[0]["real_name"]
-
-        # B. Fetch from Slack
-        user_info = slack_client.users_info(user=slack_user_id)
-        user = user_info["user"]
-        
-        # Priority: Real Name > Display Name > "Unknown"
-        real_name = user.get("real_name") or user.get("profile", {}).get("real_name") or user.get("name") or "Unknown"
-        profile = user.get("profile", {})
-        email = profile.get("email", "")
-        avatar = profile.get("image_48", "")
-
-        # C. Auto-Classify Role
-        role = "external"
-        if email and ("flyrank.com" in email or "powercommerce.com" in email):
-            role = "internal"
-
-        # D. Save to Database
-        db.table("slack_users").upsert({
-            "slack_id": slack_user_id,
-            "real_name": real_name,
-            "email": email,
-            "avatar_url": avatar,
-            "user_type": role
-        }).execute()
-        
-        print(f"👤 Discovered User: {real_name} ({role})")
-        return real_name
-
-    except Exception as e:
-        print(f"⚠️ Could not resolve user {slack_user_id}: {e}")
-        return "Unknown User"
+    return resolve_slack_user_name(slack_user_id)
 
 def save_message_to_db(project_id, msg, visibility="internal"):
     """

@@ -185,10 +185,12 @@ def handle_message(event, say):
 
     # 3. Save to Supabase (History Log)
     try:
+        from app.services.slack_utils import resolve_slack_user_name
+        
         db.table("communication_logs").insert({
             "project_id": project["id"],
             "content": text,
-            "sender_name": user, # In a real app, we'd fetch the user's real name here
+            "sender_name": resolve_slack_user_name(user), # Resolved name via slack_utils
             "source": "slack",
             "slack_ts": ts,
             "thread_ts": thread_ts,
