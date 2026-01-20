@@ -24,22 +24,58 @@ def get_openai_client():
 
 
 def build_project_context():
-    """Build context from all projects"""
+    """Build comprehensive context from all projects - includes ALL fields"""
     projects = db.table("projects").select("*").execute()
     
     context_lines = []
     for p in projects.data:
+        # Calculate migration progress if checklist exists
+        migration_info = ""
+        if p.get('migration_checklist'):
+            checklist = p['migration_checklist']
+            if isinstance(checklist, dict):
+                total = len(checklist)
+                completed = sum(1 for v in checklist.values() if v)
+                migration_info = f"\n- Migration Progress: {completed}/{total} tasks completed"
+                incomplete = [k for k, v in checklist.items() if not v]
+                if incomplete:
+                    migration_info += f"\n- Pending Migration Tasks: {', '.join(incomplete[:5])}"  # Limit to 5
+        
+        # Format communication methods
+        comm_via = p.get('last_communication_via', [])
+        comm_methods = ', '.join(comm_via) if comm_via else 'N/A'
+        
+        # Build comprehensive project info with ALL fields
         context_lines.append(f"""
 Project: {p.get('client_name')}
 - Status: {p.get('category', 'Unknown')}
-- PM: {p.get('owner', 'Unassigned')}
+- PM (Owner): {p.get('owner', 'Unassigned')}
 - Developer: {p.get('developer', 'Unassigned')}
-- Notes: {p.get('status_detail', 'No update')}
+- Status Notes: {p.get('status_detail', 'No update')}
 - Blocker: {p.get('blocker', 'None')}
 - Last Updated: {p.get('last_updated_at', 'N/A')}
+- Last Contact Date: {p.get('last_contact_date', 'N/A')}
+- Next Call Date: {p.get('next_call', 'N/A')}
+- Last Communication Via: {comm_methods}
 - Launch Date (Internal): {p.get('launch_date_internal', 'N/A')}
 - Launch Date (Public): {p.get('launch_date_public', 'N/A')}
-- URLs: {p.get('live_url', 'N/A')}
+- Live URL: {p.get('live_url', 'N/A')}
+- Shopify URL: {p.get('shopify_url', 'N/A')}
+- Shopline URL: {p.get('shopline_url', 'N/A')}
+- Shopline Preview Password: {p.get('shopline_preview_pass', 'N/A')}
+- Other URL: {p.get('other_url', 'N/A')}
+- Merchant Name: {p.get('merchant_name', 'N/A')}
+- Merchant Email: {p.get('merchant_email', 'N/A')}
+- Internal Messages Count: {p.get('comm_count_internal', 0)}
+- External Messages Count: {p.get('comm_count_external', 0)}
+- Meetings Count: {p.get('comm_count_meetings', 0)}
+- Slack Channel (Internal): {p.get('channel_id_internal', 'N/A')}
+- Slack Channel (External): {p.get('channel_id_external', 'N/A')}
+- Sync Status: {p.get('sync_status', 'N/A')}
+- Last PM Sync: {p.get('last_sync_pm', 'N/A')}
+- Last Internal Sync: {p.get('last_sync_internal', 'N/A')}
+- Last External Sync: {p.get('last_sync_external', 'N/A')}
+- Last Email Sync: {p.get('last_sync_emails', 'N/A')}{migration_info}
 """)
     
     return "\n".join(context_lines)
@@ -96,7 +132,17 @@ def send_message():
     comm_context = build_communication_context()
     
     system_prompt = f"""You are AlienGPT, an AI assistant for the Alien Portal project management system.
-You have access to all project data and communication logs.
+You have access to comprehensive project data including:
+- Project status, team assignments (PM/Owner, Developer), and blockers
+- Communication history (Slack, email, meetings) with message counts
+- Migration checklists and progress tracking
+- Launch dates (internal and public) and all URLs (Live, Shopify, Shopline, Other)
+- Store credentials (Shopline preview passwords)
+- Merchant information (name, email)
+- Contact dates and scheduled calls
+- Slack channel IDs (internal and external)
+- Sync status and last sync timestamps
+- All project metadata and history
 
 CRITICAL FORMATTING RULES:
 1. When showing project data, ALWAYS use properly formatted markdown tables
@@ -109,13 +155,15 @@ CRITICAL FORMATTING RULES:
 3. Keep table data concise - truncate long text to fit nicely
 4. For dates, use format: "Dec 18" or "2 days ago"
 5. Use bullet points for summaries and insights
-6. Use **bold** for important information (blockers, alerts)
+6. Use **bold** for important information (blockers, pending tasks, alerts)
+7. For migration questions, show checklist progress and list pending tasks
+8. For communication questions, include last contact date and methods used
 
 EXAMPLE RESPONSE FORMAT:
 "There are 3 stuck projects:
 
 | Project | PM | Blocker | Last Updated |
-|---------|-----|---------|--------------|
+|---------|-----|---------|--------------| 
 | Project A | Leo | Client delay | Dec 17 |
 | Project B | Bule | API issues | Dec 15 |
 
@@ -129,7 +177,7 @@ Current Project Data:
 Recent Communications (last 14 days):
 {comm_context}
 
-Be helpful, professional, and insightful. ALWAYS use proper markdown tables for data."""
+Be helpful, professional, and comprehensive. ALWAYS use proper markdown tables for data. When asked about migration or specific project details, include ALL relevant information from the project data."""
     
     # Build messages
     messages = [{"role": "system", "content": system_prompt}]
