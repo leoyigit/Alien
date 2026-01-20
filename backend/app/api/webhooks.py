@@ -121,6 +121,11 @@ def handle_message(event, say):
                     # Use extracted email date if available, otherwise use Slack timestamp
                     email_timestamp = email_data.get('sent_date_iso') or ts
                     
+                    # Determine visibility based on sender email domain
+                    sender_email = email_data['from_email'].lower()
+                    is_internal = '@flyrank.com' in sender_email or '@powercommerce.com' in sender_email
+                    visibility = "internal" if is_internal else "external"
+                    
                     db.table("communication_logs").insert({
                         "project_id": matched_project["id"],
                         "content": email_data['body'],
@@ -130,11 +135,12 @@ def handle_message(event, say):
                         "source": "email",
                         "slack_ts": ts,
                         "thread_ts": thread_ts,
-                        "visibility": "external",
+                        "visibility": visibility,
                         "message_timestamp": email_timestamp,
                         "email_sent_date": email_timestamp
                     }).execute()
                     print(f"   💾 Stored email for project: {matched_project['client_name']}")
+                    print(f"   📧 Visibility: {visibility} (sender: {sender_email})")
                     print(f"   📅 Email date: {email_data.get('date')} -> {email_timestamp}")
                 else:
                     print(f"   ⚠️  No project match found - logging for manual review")

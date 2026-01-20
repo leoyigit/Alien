@@ -165,6 +165,8 @@ def generate_report():
     - Blockers: [blocker or "None"]
     - Developer & PM: [developer] / [owner]
     - Last Call / Contact Date: [last_contact_date or "N/A"]
+    - Scheduled Call: [next_call or "N/A"]
+    - Going Live Date: [launch_date_public or "TBD"]
     - URLs: [live_url], [shopify_url]
 
     3. Add a blank line between projects for readability
@@ -336,7 +338,8 @@ PROJ: {p.get('client_name', 'Unknown')}
 - BLOCKER: {p.get('blocker', 'None')}
 - LAST UPDATED: {p.get('last_updated_at', 'N/A')}
 - LAST CONTACT: {p.get('last_contact_date', 'N/A')}
-- NEXT CALL: {p.get('next_call', 'N/A')}
+- SCHEDULED CALL: {p.get('next_call', 'N/A')}
+- GOING LIVE: {p.get('launch_date_public', 'TBD')}
 - URLS: {urls_str}
 """)
     
