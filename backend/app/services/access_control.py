@@ -37,7 +37,7 @@ def get_all_vector_stores() -> List[str]:
     """Get all vector store IDs across all projects."""
     projects = db.table("projects").select(
         "internal_vector_store_id, external_vector_store_id, pm_vector_store_id, email_vector_store_id"
-    ).execute()
+    ).neq("client_name", "Shopline").execute()
     
     stores = []
     for p in projects.data:
@@ -113,7 +113,7 @@ def get_user_accessible_projects(user_id: str, user_role: str) -> List[dict]:
         List of dicts with project info and access level
     """
     if user_role in ['superadmin', 'internal']:
-        projects = db.table("projects").select("id, client_name").execute()
+        projects = db.table("projects").select("id, client_name").neq("client_name", "Shopline").execute()
         return [{'id': p['id'], 'name': p['client_name'], 'access': 'full'} for p in projects.data]
     
     elif user_role == 'shopline':
