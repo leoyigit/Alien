@@ -5,7 +5,7 @@ Logs are stored in the activity_logs table for superadmin monitoring.
 """
 from app.core.supabase import db
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 import traceback
 
 
@@ -33,9 +33,12 @@ def log_activity(
         status: Status (success, error, in_progress)
         details: Additional data (error messages, counts, etc.)
         duration_ms: Duration in milliseconds
+    
+    Returns:
+        The ID of the created log entry
     """
     try:
-        db.table("activity_logs").insert({
+        result = db.table("activity_logs").insert({
             "user_id": user_id,
             "user_name": user_name,
             "action_type": action_type,
@@ -46,9 +49,60 @@ def log_activity(
             "details": details,
             "duration_ms": duration_ms
         }).execute()
+        return result.data[0]['id'] if result.data else None
     except Exception as e:
         # Don't fail the operation if logging fails
         print(f"Failed to log activity: {e}")
+        return None
+
+
+def update_activity_log(log_id: str, status: Optional[str] = None, details: Optional[Dict] = None, duration_ms: Optional[int] = None):
+    """
+    Update an existing activity log entry.
+    
+    Args:
+        log_id: ID of the log entry to update
+        status: New status (if updating)
+        details: New details (if updating)
+        duration_ms: Duration in milliseconds (if updating)
+    """
+    try:
+        update_data = {}
+        if status is not None:
+            update_data['status'] = status
+        if details is not None:
+            update_data['details'] = details
+        if duration_ms is not None:
+            update_data['duration_ms'] = duration_ms
+        
+        if update_data:
+            db.table("activity_logs").update(update_data).eq("id", log_id).execute()
+    except Exception as e:
+        print(f"Failed to update activity log: {e}")
+
+
+def append_console_output(log_id: str, line: str):
+    """
+    Append a console output line to an existing activity log.
+    
+    Args:
+        log_id: ID of the log entry
+        line: Console output line to append
+    """
+    try:
+        # Get current log
+        result = db.table("activity_logs").select("details").eq("id", log_id).execute()
+        if result.data:
+            details = result.data[0].get('details', {})
+            if 'console_output' not in details:
+                details['console_output'] = []
+            details['console_output'].append({
+                'line': line,
+                'timestamp': datetime.now().strftime('%H:%M:%S')
+            })
+            db.table("activity_logs").update({"details": details}).eq("id", log_id).execute()
+    except Exception as e:
+        print(f"Failed to append console output: {e}")
 
 
 def log_error(

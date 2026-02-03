@@ -173,9 +173,15 @@ def handle_message(event, say):
     # --- REGULAR MESSAGE HANDLING ---
     
     # 1. Ignore bot messages and file notifications
+    # EXCEPTION: Allow Mailbox channel to process bot messages (notifications)
+    MAILBOX_CHANNEL = "C0A16GEAPD5"
+    
     if subtype in ["bot_message", "file_share", "thread_broadcast"]: 
-        print(f"⏭️  Ignoring message with subtype: {subtype}")
-        return
+        if channel_id == MAILBOX_CHANNEL:
+             print(f"📧 Allowing special subtype {subtype} for Mailbox channel")
+        else:
+             print(f"⏭️  Ignoring message with subtype: {subtype}")
+             return
 
     # 2. Find Project
     project = find_project_by_channel(channel_id)
@@ -185,11 +191,11 @@ def handle_message(event, say):
 
     # 3. Save to Supabase (History Log)
     try:
-        from app.services.slack_utils import resolve_slack_user_name
+        from app.services.slack_utils import resolve_slack_user_name, extract_message_content
         
         db.table("communication_logs").insert({
             "project_id": project["id"],
-            "content": text,
+            "content": extract_message_content(event), # Use smart extractor
             "sender_name": resolve_slack_user_name(user), # Resolved name via slack_utils
             "source": "slack",
             "slack_ts": ts,

@@ -16,7 +16,7 @@ slack_client = WebClient(token=settings.SLACK_BOT_TOKEN)
 # 🛠️ HELPER FUNCTIONS
 # ---------------------------------------------------------
 
-from app.services.slack_utils import resolve_slack_user_name
+from app.services.slack_utils import resolve_slack_user_name, extract_message_content
 
 def resolve_slack_user(slack_user_id):
     """
@@ -55,7 +55,7 @@ def save_message_to_db(project_id, msg, visibility="internal"):
     # 4. Insert into Logs with ACTUAL message time
     db.table("communication_logs").insert({
         "project_id": project_id,
-        "content": msg.get("text", ""),
+        "content": extract_message_content(msg),
         "sender_name": sender_name,
         "source": "slack",
         "slack_ts": ts,
@@ -453,7 +453,7 @@ def update_project_report(project_id):
         # 2. Calculate History Diff
         changes = {}
         # Only track history for these specific important fields
-        audit_fields = ["status_detail", "blocker", "category", "owner", "developer", "launch_date_public", "client_name", "last_contact_date", "last_communication_via"]
+        audit_fields = ["status_detail", "blocker", "category", "owner", "developer", "launch_date_public", "client_name", "last_contact_date", "last_communication_via", "eta_pc", "eta_sl"]
         
         has_changes = False
         for field in audit_fields:

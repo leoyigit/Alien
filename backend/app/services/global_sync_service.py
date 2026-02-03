@@ -177,110 +177,141 @@ def sync_all_ai_knowledge(user_id: str, user_name: str) -> Dict:
     """
     start_time = time.time()
     
+    # Helper function to log both console and activity log
+    def log_line(line: str, log_id: str = None):
+        print(line)
+        if log_id:
+            activity_logger.append_console_output(log_id, line)
+    
     try:
         # Get ALL projects (not just those with AI initialized)
         projects = db.table("projects").select("*").execute()
         
+        total_projects = len(projects.data)
         initialized = 0
         synced = 0
+        skipped = 0
         failed = 0
         
-        for project in projects.data:
+        # Track details for skipped and failed projects
+        skipped_details = []
+        failed_details = []
+        
+        # Create initial activity log entry
+        log_id = activity_logger.log_activity(
+            user_id=user_id,
+            user_name=user_name,
+            action_type='sync_ai_global',
+            resource_type='global',
+            status='in_progress',
+            details={
+                'console_output': [],
+                'message': f'Starting AI sync for {total_projects} projects...'
+            }
+        )
+        
+        log_line(f"\n🚀 Starting AI sync for {total_projects} projects...", log_id)
+        
+        for idx, project in enumerate(projects.data, 1):
+            project_name = project.get('client_name', 'Unknown')
+            
+            log_line(f"\n🔄 Processing {idx}/{total_projects}: {project_name}", log_id)
+            
             try:
                 # Check if AI is initialized
                 if not project.get('internal_assistant_id'):
                     # Auto-initialize AI for this project (4 vector stores)
-                    print(f"🤖 Auto-initializing AI (4 stores) for project: {project['client_name']}")
+                    log_line(f"🤖 Auto-initializing AI (4 stores) for project: {project_name}", log_id)
                     
                     # Create 4 vector stores
                     internal_store_id = openai_service.create_vector_store(
-                        name=f"{project['client_name']} - Internal",
-                        description=f"Internal Slack communications for {project['client_name']}"
+                        name=f"{project_name} - Internal",
+                        description=f"Internal Slack communications for {project_name}"
                     )
                     
                     external_store_id = openai_service.create_vector_store(
-                        name=f"{project['client_name']} - External",
-                        description=f"External Slack communications for {project['client_name']}"
+                        name=f"{project_name} - External",
+                        description=f"External Slack communications for {project_name}"
                     )
                     
                     pm_store_id = openai_service.create_vector_store(
-                        name=f"{project['client_name']} - Internal-Project-Management",
-                        description=f"PM data: notes, blockers, updates, URLs, launch dates for {project['client_name']}"
+                        name=f"{project_name} - Internal-Project-Management",
+                        description=f"PM data: notes, blockers, updates, URLs, launch dates for {project_name}"
                     )
                     
                     email_store_id = openai_service.create_vector_store(
-                        name=f"{project['client_name']} - Emails",
-                        description=f"Email communications for {project['client_name']}"
+                        name=f"{project_name} - Emails",
+                        description=f"Email communications for {project_name}"
                     )
                     
                     # Create 4 assistants with STRICT project-specific instructions
                     internal_assistant_id = openai_service.create_assistant(
-                        name=f"{project['client_name']} - Internal Assistant",
-                        instructions=f"""You are an AI assistant EXCLUSIVELY for the {project['client_name']} project.
+                        name=f"{project_name} - Internal Assistant",
+                        instructions=f"""You are an AI assistant EXCLUSIVELY for the {project_name} project.
 
 IMPORTANT RULES:
-1. You can ONLY answer questions about {project['client_name']}. 
-2. If asked about ANY other project, respond: "I only have access to {project['client_name']} data. I cannot answer about other projects."
+1. You can ONLY answer questions about {project_name}. 
+2. If asked about ANY other project, respond: "I only have access to {project_name} data. I cannot answer about other projects."
 3. If the question is unclear or ambiguous, ASK clarifying questions before answering.
-4. ONLY use information from your assigned knowledge base (internal Slack communications for {project['client_name']}).
+4. ONLY use information from your assigned knowledge base (internal Slack communications for {project_name}).
 5. Always cite the source (date, person, channel) when providing information.
 6. If you don't have information, say "I don't have that information in my knowledge base" - NEVER make up answers.
 
-Your knowledge base contains: Internal team Slack communications for {project['client_name']}.
+Your knowledge base contains: Internal team Slack communications for {project_name}.
 
 Be helpful, professional, and always verify you're answering about the correct project.""",
                         vector_store_id=internal_store_id
                     )
                     
                     external_assistant_id = openai_service.create_assistant(
-                        name=f"{project['client_name']} - External Assistant",
-                        instructions=f"""You are an AI assistant EXCLUSIVELY for the {project['client_name']} project.
+                        name=f"{project_name} - External Assistant",
+                        instructions=f"""You are an AI assistant EXCLUSIVELY for the {project_name} project.
 
 IMPORTANT RULES:
-1. You can ONLY answer questions about {project['client_name']}.
-2. If asked about ANY other project, respond: "I only have access to {project['client_name']} data. I cannot answer about other projects."
+1. You can ONLY answer questions about {project_name}.
+2. If asked about ANY other project, respond: "I only have access to {project_name} data. I cannot answer about other projects."
 3. If the question is unclear or ambiguous, ASK clarifying questions before answering.
-4. ONLY use information from your assigned knowledge base (external Slack communications for {project['client_name']}).
+4. ONLY use information from your assigned knowledge base (external Slack communications for {project_name}).
 5. Always cite the source (date, person, channel) when providing information.
 6. If you don't have information, say "I don't have that information in my knowledge base" - NEVER make up answers.
 
-Your knowledge base contains: External Slack communications with clients and Shopline team for {project['client_name']}.
+Your knowledge base contains: External Slack communications with clients and Shopline team for {project_name}.
 
 Be professional, client-focused, and always verify you're answering about the correct project.""",
                         vector_store_id=external_store_id
                     )
                     
                     pm_assistant_id = openai_service.create_assistant(
-                        name=f"{project['client_name']} - PM Assistant",
-                        instructions=f"""You are an AI assistant EXCLUSIVELY for the {project['client_name']} project.
+                        name=f"{project_name} - PM Assistant",
+                        instructions=f"""You are an AI assistant EXCLUSIVELY for the {project_name} project.
 
 IMPORTANT RULES:
-1. You can ONLY answer questions about {project['client_name']}.
-2. If asked about ANY other project, respond: "I only have access to {project['client_name']} data. I cannot answer about other projects."
+1. You can ONLY answer questions about {project_name}.
+2. If asked about ANY other project, respond: "I only have access to {project_name} data. I cannot answer about other projects."
 3. If the question is unclear or ambiguous, ASK clarifying questions before answering.
-4. ONLY use information from your assigned knowledge base (PM data for {project['client_name']}).
+4. ONLY use information from your assigned knowledge base (PM data for {project_name}).
 5. Always cite specific dates, PM names, and report details when providing information.
 6. If you don't have information, say "I don't have that information in my knowledge base" - NEVER make up answers.
 
-Your knowledge base contains: PM notes, blockers, updates, URLs, launch dates, and all PM inputs for {project['client_name']}.
+Your knowledge base contains: PM notes, blockers, updates, URLs, launch dates, and all PM inputs for {project_name}.
 
 Be detailed, reference specific dates and updates, and always verify you're answering about the correct project.""",
                         vector_store_id=pm_store_id
                     )
                     
                     email_assistant_id = openai_service.create_assistant(
-                        name=f"{project['client_name']} - Email Assistant",
-                        instructions=f"""You are an AI assistant EXCLUSIVELY for the {project['client_name']} project.
+                        name=f"{project_name} - Email Assistant",
+                        instructions=f"""You are an AI assistant EXCLUSIVELY for the {project_name} project.
 
 IMPORTANT RULES:
-1. You can ONLY answer questions about {project['client_name']}.
-2. If asked about ANY other project, respond: "I only have access to {project['client_name']} data. I cannot answer about other projects."
+1. You can ONLY answer questions about {project_name}.
+2. If asked about ANY other project, respond: "I only have access to {project_name} data. I cannot answer about other projects."
 3. If the question is unclear or ambiguous, ASK clarifying questions before answering.
-4. ONLY use information from your assigned knowledge base (emails for {project['client_name']}).
+4. ONLY use information from your assigned knowledge base (emails for {project_name}).
 5. Always cite the email sender, date, and subject when providing information.
 6. If you don't have information, say "I don't have that information in my knowledge base" - NEVER make up answers.
 
-Your knowledge base contains: Email communications for {project['client_name']}.
+Your knowledge base contains: Email communications for {project_name}.
 
 Be professional, reference specific emails, and always verify you're answering about the correct project.""",
                         vector_store_id=email_store_id
@@ -300,7 +331,22 @@ Be professional, reference specific emails, and always verify you're answering a
                     }).eq("id", project['id']).execute()
                     
                     initialized += 1
-                    print(f"✅ Initialized 4 vector stores for {project['client_name']}")
+                    log_line(f"✅ Initialized 4 vector stores for {project_name}", log_id)
+                
+                # Check if project has any channels configured
+                has_internal_channel = bool(project.get('channel_id_internal'))
+                has_external_channel = bool(project.get('channel_id_external'))
+                
+                if not has_internal_channel and not has_external_channel:
+                    # Skip projects with no channels
+                    reason = "No Slack channels configured"
+                    log_line(f"⚠️  Skipped {project_name}: {reason}", log_id)
+                    skipped += 1
+                    skipped_details.append({"project": project_name, "reason": reason})
+                    continue
+                
+                # Track if any data was synced
+                data_synced = False
                 
                 # Now sync messages (whether just initialized or already existed)
                 # Sync internal channel
@@ -312,7 +358,8 @@ Be professional, reference specific emails, and always verify you're answering a
                         updated_project.data[0]['internal_vector_store_id'],
                         internal_messages
                     )
-                    print(f"📤 Uploaded {len(internal_messages)} internal messages for {project['client_name']}")
+                    log_line(f"📤 Uploaded {len(internal_messages)} internal messages for {project_name}", log_id)
+                    data_synced = True
                 
                 # Sync external channel
                 external_messages = slack_sync_service.sync_external_channel(project['id'])
@@ -322,7 +369,8 @@ Be professional, reference specific emails, and always verify you're answering a
                         updated_project.data[0]['external_vector_store_id'],
                         external_messages
                     )
-                    print(f"📤 Uploaded {len(external_messages)} external messages for {project['client_name']}")
+                    log_line(f"📤 Uploaded {len(external_messages)} external messages for {project_name}", log_id)
+                    data_synced = True
                 
                 # Sync PM data
                 pm_data = pm_sync_service.sync_pm_data(project['id'])
@@ -333,9 +381,10 @@ Be professional, reference specific emails, and always verify you're answering a
                         openai_service.upload_text_to_vector_store(
                             updated_project.data[0]['pm_vector_store_id'],
                             pm_text,
-                            f"{project['client_name']}_pm_data.txt"
+                            f"{project_name}_pm_data.txt"
                         )
-                        print(f"📋 Uploaded PM data for {project['client_name']}")
+                        log_line(f"📋 Uploaded PM data for {project_name}", log_id)
+                        data_synced = True
                 
                 # Sync emails
                 emails = email_sync_service.sync_emails(project['id'])
@@ -346,41 +395,69 @@ Be professional, reference specific emails, and always verify you're answering a
                         openai_service.upload_text_to_vector_store(
                             updated_project.data[0]['email_vector_store_id'],
                             email_text,
-                            f"{project['client_name']}_emails.txt"
+                            f"{project_name}_emails.txt"
                         )
-                        print(f"📧 Uploaded {len(emails)} emails for {project['client_name']}")
+                        log_line(f"📧 Uploaded {len(emails)} emails for {project_name}", log_id)
+                        data_synced = True
                 
-                # Update timestamps
-                db.table("projects").update({
-                    "last_sync_internal": time.strftime('%Y-%m-%dT%H:%M:%S'),
-                    "last_sync_external": time.strftime('%Y-%m-%dT%H:%M:%S'),
-                    "sync_status": "synced"
-                }).eq("id", project['id']).execute()
-                
-                synced += 1
+                # Determine if we should count as synced or skipped
+                if data_synced:
+                    # Update timestamps
+                    db.table("projects").update({
+                        "last_sync_internal": time.strftime('%Y-%m-%dT%H:%M:%S'),
+                        "last_sync_external": time.strftime('%Y-%m-%dT%H:%M:%S'),
+                        "sync_status": "synced"
+                    }).eq("id", project['id']).execute()
+                    
+                    synced += 1
+                    log_line(f"✅ Synced {project_name}", log_id)
+                else:
+                    # No new data to sync
+                    reason = "No new data to sync"
+                    log_line(f"⚠️  Skipped {project_name}: {reason}", log_id)
+                    skipped += 1
+                    skipped_details.append({"project": project_name, "reason": reason})
                 
             except Exception as e:
-                print(f"❌ Failed to sync AI for project {project.get('client_name', project['id'])}: {e}")
+                error_msg = str(e)
+                log_line(f"❌ Failed to sync AI for project {project_name}: {error_msg}", log_id)
                 failed += 1
+                failed_details.append({"project": project_name, "error": error_msg})
         
         duration_ms = int((time.time() - start_time) * 1000)
         
-        activity_logger.log_activity(
-            user_id=user_id,
-            user_name=user_name,
-            action_type='sync_ai_global',
-            resource_type='global',
-            status='success',
-            details={'initialized': initialized, 'synced': synced, 'failed': failed},
-            duration_ms=duration_ms
-        )
+        log_line(f"\n✅ Completed: {synced} synced, {skipped} skipped, {failed} failed", log_id)
         
-        return {'initialized': initialized, 'synced': synced, 'failed': failed}
+        # Update final activity log
+        if log_id:
+            activity_logger.update_activity_log(
+                log_id=log_id,
+                status='success',
+                details={
+                    'initialized': initialized,
+                    'synced': synced,
+                    'skipped': skipped,
+                    'failed': failed,
+                    'skipped_details': skipped_details,
+                    'failed_details': failed_details,
+                    'console_output': None,  # Keep existing console_output
+                    'message': f'Completed: {synced} synced, {skipped} skipped, {failed} failed'
+                },
+                duration_ms=duration_ms
+            )
+        
+        return {'initialized': initialized, 'synced': synced, 'skipped': skipped, 'failed': failed, 'skipped_details': skipped_details, 'failed_details': failed_details}
     
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
-        activity_logger.log_error(user_id, user_name, 'sync_ai_global', e, 'global', duration_ms=duration_ms)
+        if 'log_id' in locals() and log_id:
+            log_line(f"\n❌ Sync failed: {str(e)}", log_id)
+            activity_logger.update_activity_log(log_id=log_id, status='error', duration_ms=duration_ms)
+        else:
+            activity_logger.log_error(user_id, user_name, 'sync_ai_global', e, 'global', duration_ms=duration_ms)
         raise
+
+
 
 
 def run_global_sync(user_id: str, user_name: str) -> Dict:

@@ -42,46 +42,55 @@ Developer: {p.get('developer', 'Not assigned')}""",
     })
     
     # 2. Get all reports (PM notes, updates, blockers)
-    reports_query = db.table("report_history").select("*").eq("project_id", project_id)
-    
-    if last_sync:
-        # Incremental sync - only new/updated reports
-        reports_query = reports_query.gte("created_at", last_sync)
-    
-    reports = reports_query.order("created_at", desc=False).execute()
-    
-    for report in reports.data:
-        content_parts = []
+    # Wrap in try-except to handle database schema issues gracefully
+    try:
+        reports_query = db.table("report_history").select("*").eq("project_id", project_id)
         
-        # Add notes
-        if report.get('notes'):
-            content_parts.append(f"Notes: {report['notes']}")
+        if last_sync:
+            # Incremental sync - only new/updated reports
+            reports_query = reports_query.gte("created_at", last_sync)
         
-        # Add blockers
-        if report.get('blocker'):
-            blocker_status = "Active" if report.get('blocker') == 'yes' else "Resolved"
-            blocker_text = report.get('blocker_text', '')
-            content_parts.append(f"Blocker ({blocker_status}): {blocker_text}")
+        reports = reports_query.order("created_at", desc=False).execute()
         
-        # Add updates from JSON
-        if report.get('updates'):
-            updates = report['updates']
-            if isinstance(updates, dict):
-                for key, value in updates.items():
-                    if value:
-                        content_parts.append(f"{key}: {value}")
-        
-        if content_parts:
-            pm_data.append({
-                'type': 'pm_report',
-                'content': f"""Date: {report.get('created_at', 'Unknown')}
+        for report in reports.data:
+            content_parts = []
+            
+            # Add notes
+            if report.get('notes'):
+                content_parts.append(f"Notes: {report['notes']}")
+            
+            # Add blockers
+            if report.get('blocker'):
+                blocker_status = "Active" if report.get('blocker') == 'yes' else "Resolved"
+                blocker_text = report.get('blocker_text', '')
+                content_parts.append(f"Blocker ({blocker_status}): {blocker_text}")
+            
+            # Add updates from JSON
+            if report.get('updates'):
+                updates = report['updates']
+                if isinstance(updates, dict):
+                    for key, value in updates.items():
+                        if value:
+                            content_parts.append(f"{key}: {value}")
+            
+            if content_parts:
+                pm_data.append({
+                    'type': 'pm_report',
+                    'content': f"""Date: {report.get('created_at', 'Unknown')}
 PM: {report.get('created_by', 'Unknown')}
 
 {chr(10).join(content_parts)}""",
-                'timestamp': report.get('created_at', datetime.now().isoformat())
-            })
+                    'timestamp': report.get('created_at', datetime.now().isoformat())
+                })
+    except Exception as e:
+        # If report_history table has issues, just skip it and return project info
+        print(f"Warning: Could not fetch PM reports for project {project_id}: {e}")
+        pass
     
     return pm_data
+
+
+
 
 
 def format_pm_data_for_upload(pm_data: List[Dict]) -> str:

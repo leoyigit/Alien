@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Filter, RefreshCw, Download, CheckCircle, XCircle, Clock, Search } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FileText, Filter, RefreshCw, Download, CheckCircle, XCircle, Clock, Search, ChevronDown, ChevronUp, Terminal } from 'lucide-react';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext';
 
@@ -12,14 +12,16 @@ export default function AdminLogs() {
         search: ''
     });
     const [autoRefresh, setAutoRefresh] = useState(true);
+    const [expandedLogs, setExpandedLogs] = useState({});
     const { showToast } = useToast();
+    const terminalRefs = useRef({});
 
     useEffect(() => {
         fetchLogs();
 
-        // Auto-refresh every 30 seconds
+        // Auto-refresh every 3 seconds for real-time progress
         if (autoRefresh) {
-            const interval = setInterval(fetchLogs, 30000);
+            const interval = setInterval(fetchLogs, 3000);
             return () => clearInterval(interval);
         }
     }, [filters, autoRefresh]);
@@ -53,6 +55,7 @@ export default function AdminLogs() {
         const labels = {
             'sync_contacts': 'Synced Contacts',
             'sync_ai_global': 'Synced AI Knowledge',
+            'sync_ai_progress': 'AI Sync Progress',
             'sync_global': 'Global Sync',
             'ai_chat': 'AI Chat',
             'ai_initialize': 'Initialized AI',
@@ -71,6 +74,22 @@ export default function AdminLogs() {
         }
         return true;
     });
+
+    const toggleExpanded = (logId) => {
+        setExpandedLogs(prev => ({
+            ...prev,
+            [logId]: !prev[logId]
+        }));
+    };
+
+    // Auto-scroll terminal to bottom when expanded
+    useEffect(() => {
+        Object.keys(expandedLogs).forEach(logId => {
+            if (expandedLogs[logId] && terminalRefs.current[logId]) {
+                terminalRefs.current[logId].scrollTop = terminalRefs.current[logId].scrollHeight;
+            }
+        });
+    }, [logs, expandedLogs]);
 
     return (
         <div className="p-8">
@@ -153,51 +172,84 @@ export default function AdminLogs() {
                 ) : filteredLogs.length === 0 ? (
                     <div className="text-center py-12 text-gray-400">No logs found</div>
                 ) : (
-                    filteredLogs.map((log) => (
-                        <div key={log.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-purple-500 transition">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-start gap-3 flex-1">
-                                    {getStatusIcon(log.status)}
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-bold">{log.user_name}</span>
-                                            <span className="text-gray-400">•</span>
-                                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                                                {getActionLabel(log.action_type)}
-                                            </span>
-                                            {log.resource_name && (
-                                                <>
+                    filteredLogs.map((log) => {
+                        const hasConsoleOutput = log.details?.console_output && log.details.console_output.length > 0;
+                        const isExpanded = expandedLogs[log.id];
+
+                        return (
+                            <div key={log.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-500 transition">
+                                <div className="p-4">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-start gap-3 flex-1">
+                                            {getStatusIcon(log.status)}
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="font-bold">{log.user_name}</span>
                                                     <span className="text-gray-400">•</span>
                                                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                                                        {log.resource_name}
+                                                        {getActionLabel(log.action_type)}
                                                     </span>
-                                                </>
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-gray-400">
-                                            {new Date(log.timestamp).toLocaleString()}
-                                            {log.duration_ms && ` • ${(log.duration_ms / 1000).toFixed(2)}s`}
-                                        </div>
-                                        {log.details && (
-                                            <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                                                {log.status === 'error' ? (
-                                                    <div className="text-red-600 font-mono">{log.details.error}</div>
-                                                ) : (
-                                                    <div className="flex gap-4">
-                                                        {Object.entries(log.details).map(([key, value]) => (
-                                                            <span key={key}>
-                                                                <span className="font-bold">{key}:</span> {JSON.stringify(value)}
+                                                    {log.resource_name && (
+                                                        <>
+                                                            <span className="text-gray-400">•</span>
+                                                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                                                                {log.resource_name}
                                                             </span>
-                                                        ))}
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-gray-400">
+                                                    {new Date(log.timestamp).toLocaleString()}
+                                                    {log.duration_ms && ` • ${(log.duration_ms / 1000).toFixed(2)}s`}
+                                                </div>
+                                                {log.details && !hasConsoleOutput && (
+                                                    <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                                        {log.status === 'error' ? (
+                                                            <div className="text-red-600 font-mono">{log.details.error}</div>
+                                                        ) : (
+                                                            <div className="flex gap-4">
+                                                                {Object.entries(log.details).filter(([key]) => key !== 'console_output').map(([key, value]) => (
+                                                                    <span key={key}>
+                                                                        <span className="font-bold">{key}:</span> {JSON.stringify(value)}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
+                                        </div>
+                                        {hasConsoleOutput && (
+                                            <button
+                                                onClick={() => toggleExpanded(log.id)}
+                                                className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                                            >
+                                                <Terminal size={14} />
+                                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                            </button>
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Terminal Output */}
+                                {hasConsoleOutput && isExpanded && (
+                                    <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-900 p-4">
+                                        <div
+                                            ref={el => terminalRefs.current[log.id] = el}
+                                            className="font-mono text-sm text-green-400 max-h-96 overflow-y-auto space-y-1"
+                                        >
+                                            {log.details.console_output.map((output, idx) => (
+                                                <div key={idx} className="flex gap-2">
+                                                    <span className="text-gray-500 text-xs">{output.timestamp}</span>
+                                                    <span className="whitespace-pre-wrap">{output.line}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </div>

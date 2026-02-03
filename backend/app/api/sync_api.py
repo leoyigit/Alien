@@ -20,7 +20,7 @@ def global_sync():
     """
     try:
         user_id = g.user.get('id')
-        user_name = g.user.get('name', 'Unknown')
+        user_name = g.user.get('full_name') or g.user.get('email', 'Unknown')
         
         result = global_sync_service.run_global_sync(user_id, user_name)
         

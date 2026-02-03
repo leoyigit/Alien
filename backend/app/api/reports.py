@@ -166,6 +166,8 @@ def generate_report():
     - Developer & PM: [developer] / [owner]
     - Last Call / Contact Date: [last_contact_date or "N/A"]
     - Scheduled Call: [next_call or "N/A"]
+    - ETA PC: [eta_pc or "N/A"]
+    - ETA SL: [eta_sl or "N/A"]
     - Going Live Date: [launch_date_public or "TBD"]
     - URLs: [live_url], [shopify_url]
 
@@ -339,6 +341,8 @@ PROJ: {p.get('client_name', 'Unknown')}
 - LAST UPDATED: {p.get('last_updated_at', 'N/A')}
 - LAST CONTACT: {p.get('last_contact_date', 'N/A')}
 - SCHEDULED CALL: {p.get('next_call', 'N/A')}
+- ETA PC: {p.get('eta_pc', 'N/A')}
+- ETA SL: {p.get('eta_sl', 'N/A')}
 - GOING LIVE: {p.get('launch_date_public', 'TBD')}
 - URLS: {urls_str}
 """)
@@ -491,6 +495,8 @@ def build_pm_status_context(projects):
 - **Blocker:** {p.get('blocker', 'None')}
 - **Last Contact:** {p.get('last_contact_date', 'Unknown')}
 - **Next Call:** {p.get('next_call', 'Not scheduled')}
+- **ETA PC:** {p.get('eta_pc', 'N/A')}
+- **ETA SL:** {p.get('eta_sl', 'N/A')}
 """)
     
     return "\n".join(lines)

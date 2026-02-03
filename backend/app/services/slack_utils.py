@@ -68,3 +68,46 @@ def resolve_slack_user_name(user_id: str) -> str:
     except Exception as e:
         print(f"⚠️ Could not resolve slack user {user_id}: {e}")
         return user_id # Fallback to ID so we don't lose info
+
+def extract_message_content(msg: dict) -> str:
+    """
+    Extract text content from a Slack message object.
+    Handles plain text, blocks, and attachments.
+    """
+    # 1. Plain Text
+    text = msg.get("text", "")
+    if text:
+        return text
+
+    # 2. Attachments (often used by bots/integrations)
+    attachments = msg.get("attachments", [])
+    if attachments:
+        parts = []
+        for att in attachments:
+            # Try various attachment fields
+            part = att.get("text") or att.get("fallback") or att.get("pretext")
+            if part:
+                parts.append(part)
+        if parts:
+            return "\n".join(parts)
+
+    # 3. Blocks (Rich text)
+    blocks = msg.get("blocks", [])
+    if blocks:
+        block_texts = []
+        for block in blocks:
+            # Simplify: just look for 'text' fields in sections/contexts
+            if block.get("type") == "section":
+                text_obj = block.get("text", {})
+                if text_obj.get("text"):
+                    block_texts.append(text_obj.get("text"))
+            elif block.get("type") == "context":
+                elements = block.get("elements", [])
+                for el in elements:
+                    if el.get("text"):
+                        block_texts.append(el.get("text"))
+        
+        if block_texts:
+            return "\n".join(block_texts)
+
+    return ""
