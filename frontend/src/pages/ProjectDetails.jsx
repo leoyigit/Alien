@@ -489,6 +489,12 @@ export default function ProjectDetails() {
                                         placeholder="Explain the blocker..."
                                     />
                                 </div>
+                                    {/* Last Communication Via */}
+                                    <div className="mt-4">
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Last Communication Via</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {['Slack', 'Email', 'Google Meet', 'Huddle'].map(method => {
+                                                const methodKey = method.toLowerCase().replace(' ', '_');
                                                 const isSelected = formData.last_communication_via?.includes(methodKey);
                                                 return (
                                                     <button
@@ -567,7 +573,7 @@ export default function ProjectDetails() {
             </div>
         </div>
                 </div >
-            )
+    )
 }
 
 {
